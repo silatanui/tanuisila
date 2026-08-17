@@ -1,9 +1,9 @@
 <?php
 // Update these values for your environment
-define('DB_HOST', '127.0.0.1');
-define('DB_NAME', 'portfolio_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'ipusgkqs_portfolio_db');
+define('DB_USER', 'ipusgkqs_tanui');
+define('DB_PASS', 'aKSnlQndlM9WCYM9');
 // Admin login credentials for the panel
 define('ADMIN_USERNAME', 'silatanuikipngetich@gmail.com');
 define('ADMIN_PASSWORD', 'aKSnlQndlM9WCYM9');
