@@ -16,7 +16,7 @@ $blogPosts = $pdo->query("SELECT * FROM blog_posts WHERE status = 'published' OR
           <?php foreach ($blogPosts as $post): ?>
             <article class="blog-post" style="padding: 24px; background: var(--soft-bg); border: 1px solid var(--light-gray); margin-bottom: 20px;">
               <?php if (!empty($post['featured_image'])): ?>
-                <img src="<?php echo htmlspecialchars($post['featured_image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>" style="width: 100%; height: 240px; object-fit: cover; margin: -24px -24px 16px -24px; display: block;">
+                <img src="<?php echo htmlspecialchars(portfolioAssetUrl($post['featured_image'])); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>" style="width: 100%; height: 240px; object-fit: cover; margin: -24px -24px 16px -24px; display: block;">
               <?php endif; ?>
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
                 <div style="flex: 1;">

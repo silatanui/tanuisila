@@ -82,6 +82,23 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
 $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
 $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
 
+function portfolioAssetUrl(string $assetPath): string {
+  $assetPath = trim($assetPath);
+  if ($assetPath === '' || preg_match('#^(https?:)?//#i', $assetPath)) {
+    return $assetPath;
+  }
+
+  $appBase = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/public/index.php'));
+  $appBase = $appBase === '/' || $appBase === '\\' ? '' : rtrim(str_replace('\\', '/', $appBase), '/');
+  $assetPath = '/' . ltrim($assetPath, '/');
+
+  if (strpos($assetPath, '/tanuisila/') === 0) {
+    $assetPath = substr($assetPath, strlen('/tanuisila'));
+  }
+
+  return $appBase . '/' . ltrim($assetPath, '/');
+}
+
 if (!isset($activePage)) {
   $activePage = 'home';
 }

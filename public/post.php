@@ -36,7 +36,7 @@ require_once __DIR__ . '/header.php';
     <div class="section-content">
       <!-- Featured Image -->
       <?php if (!empty($post['featured_image'])): ?>
-        <img src="<?php echo htmlspecialchars($post['featured_image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>" style="width: 100%; height: 400px; object-fit: cover; margin-bottom: 32px; display: block;">
+        <img src="<?php echo htmlspecialchars(portfolioAssetUrl($post['featured_image'])); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>" style="width: 100%; height: 400px; object-fit: cover; margin-bottom: 32px; display: block;">
       <?php endif; ?>
 
       <!-- Post Header -->
@@ -121,7 +121,7 @@ require_once __DIR__ . '/header.php';
             <?php foreach ($relatedPostsData as $relatedPost): ?>
               <article style="padding: 20px; background: var(--soft-bg); border: 1px solid var(--light-gray);">
                 <?php if (!empty($relatedPost['featured_image'])): ?>
-                  <img src="<?php echo htmlspecialchars($relatedPost['featured_image']); ?>" alt="<?php echo htmlspecialchars($relatedPost['title']); ?>" style="width: 100%; height: 150px; object-fit: cover; margin: -20px -20px 12px -20px; display: block;">
+                  <img src="<?php echo htmlspecialchars(portfolioAssetUrl($relatedPost['featured_image'])); ?>" alt="<?php echo htmlspecialchars($relatedPost['title']); ?>" style="width: 100%; height: 150px; object-fit: cover; margin: -20px -20px 12px -20px; display: block;">
                 <?php endif; ?>
                 <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                   <div style="font-size: 0.75rem; color: var(--muted); font-weight: 700; text-transform: uppercase;">
