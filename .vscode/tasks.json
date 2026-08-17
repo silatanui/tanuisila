@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Copy Sila Photo",
+			"type": "shell",
+			"command": "copy \"C:\\xampp\\htdocs\\tanuisila\\IMG_20260625_115331.jpg\" \"C:\\xampp\\htdocs\\tanuisila\\public\\profile.jpg\" /Y",
+			"isBackground": false
+		},
+		{
+			"label": "Copy Photo PowerShell",
+			"type": "shell",
+			"command": "Copy-Item -Path \"c:\\xampp\\htdocs\\tanuisila\\IMG_20260625_115331.jpg\" -Destination \"c:\\xampp\\htdocs\\tanuisila\\public\\profile.jpg\" -Force"
+		},
+		{
+			"label": "Copy Photo Root PowerShell",
+			"type": "shell",
+			"command": "Copy-Item -Path \"c:\\xampp\\htdocs\\tanuisila\\IMG_20260625_115331.jpg\" -Destination \"c:\\xampp\\htdocs\\tanuisila\\profile.jpg\" -Force"
+		}
+	]
+}
