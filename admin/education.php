@@ -1,6 +1,8 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/education.php';
+ensureEducationDetails($pdo);
 require_once __DIR__ . '/sidebar.php';
 require_once __DIR__ . '/topbar.php';
 
@@ -33,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
         $start_year = trim($_POST['start_year'] ?? '');
         $end_year = trim($_POST['end_year'] ?? '');
         $description = trim($_POST['description'] ?? '');
+        $education_details = trim($_POST['education_details'] ?? '');
         $sort_order = (int) ($_POST['sort_order'] ?? 0);
         $entryId = !empty($_POST['entry_id']) ? (int)$_POST['entry_id'] : 0;
 
@@ -42,15 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 
         if ($entryId > 0) {
             // UPDATE existing entry
-            $stmt = $pdo->prepare('UPDATE education SET institution=?, degree=?, field_name=?, start_year=?, end_year=?, description=?, sort_order=? WHERE id=?');
-            $stmt->execute([$institution, $degree, $field_name, $start_year, $end_year, $description, $sort_order, $entryId]);
+            $stmt = $pdo->prepare('UPDATE education SET institution=?, degree=?, field_name=?, start_year=?, end_year=?, description=?, education_details=?, sort_order=? WHERE id=?');
+            $stmt->execute([$institution, $degree, $field_name, $start_year, $end_year, $description, $education_details, $sort_order, $entryId]);
             $notice = 'Education entry updated successfully.';
             $editId = 0;
             $editingEntry = null;
         } else {
             // INSERT new entry
-            $stmt = $pdo->prepare('INSERT INTO education (institution, degree, field_name, start_year, end_year, description, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$institution, $degree, $field_name, $start_year, $end_year, $description, $sort_order]);
+            $stmt = $pdo->prepare('INSERT INTO education (institution, degree, field_name, start_year, end_year, description, education_details, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$institution, $degree, $field_name, $start_year, $end_year, $description, $education_details, $sort_order]);
             $notice = 'Education entry added successfully.';
         }
     } catch (Throwable $e) {
@@ -121,8 +124,9 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
               <input type="number" name="sort_order" value="<?php echo htmlspecialchars($editingEntry['sort_order'] ?? '0'); ?>">
             </div>
             <div class="field full">
-              <label>Description</label>
-              <textarea name="description"><?php echo htmlspecialchars($editingEntry['description'] ?? ''); ?></textarea>
+              <label>Academic details</label>
+              <textarea name="education_details" rows="12" placeholder="Add grades, credits, website, core courses, thesis, or other academic details..."><?php echo htmlspecialchars($editingEntry['education_details'] ?? ''); ?></textarea>
+              <small class="muted-copy">Use a new line for each course or detail. These details are displayed on the public Education page.</small>
             </div>
           </div>
           <div class="form-actions">
@@ -147,7 +151,7 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
                   <th>Degree</th>
                   <th>Field</th>
                   <th>Period</th>
-                  <th>Description</th>
+                  <th>Academic details</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -158,7 +162,7 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
                     <td><?php echo htmlspecialchars($item['degree'] ?: '—'); ?></td>
                     <td><?php echo htmlspecialchars($item['field_name'] ?: '—'); ?></td>
                     <td><?php echo htmlspecialchars($item['start_year'] ?: '—'); ?> - <?php echo htmlspecialchars($item['end_year'] ?: 'Present'); ?></td>
-                    <td><?php echo nl2br(htmlspecialchars($item['description'] ?: '—')); ?></td>
+                    <td><?php echo nl2br(htmlspecialchars($item['education_details'] ?: $item['description'] ?: '—')); ?></td>
                     <td>
                       <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
                       <a class="btn danger small" href="?delete=education&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>

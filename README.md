@@ -31,10 +31,11 @@ tanuisila/
 ## 🚀 Quick Setup
 
 1. Copy files to your web server document root (e.g., `htdocs` or `www`)
-2. Edit `config/config.php` and set `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`
-3. Import `config/db.sql` into phpMyAdmin to create database
-4. Browse to `index.php` to view the public portfolio
-5. Access admin at `admin/index.php?key=change-me` (update `ADMIN_KEY` in `config/config.php`)
+2. Copy `.env.example` to `.env` and fill in your local credentials
+3. Import `config/db.sql` into phpMyAdmin to create the tables
+4. Run `C:\xampp\php\php.exe database/seed.php` once to add the portfolio data
+5. Browse to `index.php` to view the public portfolio
+6. Access the admin login at `admin/login.php`
 
 ## 📖 Access Points
 
@@ -43,12 +44,12 @@ tanuisila/
 
 ## ⚙️ Configuration
 
-All database settings are in `config/config.php`:
+Runtime settings are loaded from the untracked `.env` file:
 - `DB_HOST` - MySQL server address
 - `DB_USER` - MySQL username
 - `DB_PASS` - MySQL password
 - `DB_NAME` - Database name
-- `ADMIN_KEY` - Secret key for admin access (⚠️ change immediately)
+- `ADMIN_KEY` - Optional secret key for legacy access (set a unique value if used)
 
 ## 🛡️ Security Notes
 
@@ -56,7 +57,8 @@ All database settings are in `config/config.php`:
 - For production, implement proper authentication (login system)
 - Database queries use PDO prepared statements (SQL injection safe)
 - Keep `ADMIN_KEY` confidential and change from default
-- Never commit `config/config.php` with real credentials to version control
+- Never commit `.env` or real credentials to version control
+- Use `.env.example` as the public configuration template
 
 ## 🎨 Customization
 

@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/education.php';
+ensureEducationDetails($pdo);
 
 $preferredLogos = [
   '../Tanui-Sila-Logo-v3.png',
@@ -108,7 +110,10 @@ if (!isset($activePage)) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?> — <?php echo ucfirst($activePage); ?></title>
+  <?php if (basename(dirname($_SERVER['SCRIPT_NAME'] ?? '')) !== 'public'): ?>
+  <base href="public/">
+  <?php endif; ?>
+  <title><?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?></title>
   <link rel="icon" href="logo_with_bg.jpg?v=<?php echo @filemtime(__DIR__ . '/logo_with_bg.jpg'); ?>">
   <meta property="og:title" content="<?php echo htmlspecialchars($profile['full_name']); ?> — Portfolio">
   <meta property="og:description" content="<?php echo htmlspecialchars($profile['summary'] ?: $profile['bio']); ?>">

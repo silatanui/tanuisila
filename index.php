@@ -10,7 +10,6 @@ if ($page === 'admin') {
     header("Location: admin/index.php");
     exit;
 } else {
-    header("Location: public/index.php");
-    exit;
+    require __DIR__ . '/public/index.php';
 }
 ?>

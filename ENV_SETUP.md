@@ -40,6 +40,15 @@ OPENAI_API_KEY=sk-your-actual-openai-key-here
 
 ### 4. Important Security Notes
 
+### 5. Seed the database
+After creating the database tables, run the one-time data import from the project root:
+
+```bash
+php database/seed.php
+```
+
+The application configuration does not insert portfolio content during normal page requests.
+
 ⚠️ **Never commit `.env` file to Git!** 
 - `.env` is already in `.gitignore`
 - It contains sensitive credentials

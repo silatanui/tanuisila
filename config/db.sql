@@ -31,12 +31,13 @@ CREATE TABLE IF NOT EXISTS `projects` (
 
 CREATE TABLE IF NOT EXISTS `education` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
-  `institution` VARCHAR(255) NOT NULL,
+  `institution` VARCHAR(255) NOT NULL UNIQUE,
   `degree` VARCHAR(255),
   `field_name` VARCHAR(255),
   `start_year` VARCHAR(20),
   `end_year` VARCHAR(20),
   `description` TEXT,
+  `education_details` TEXT,
   `sort_order` INT DEFAULT 0
 );
 
