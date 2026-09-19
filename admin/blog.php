@@ -98,11 +98,29 @@ $posts = $pdo->query('
   <link rel="icon" type="image/jpeg" href="../Tanui-Sila-Logo-v3.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="../assets/css/admin.css?v=1">
   <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
   <style>
+    /* Enforce Outfit font across entire admin page and TinyMCE container */
+    body, button, input, select, textarea {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    /* TinyMCE Shell & UI Typography */
+    .tox, .tox * {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+    .tox .tox-toolbar, .tox .tox-menubar, .tox .tox-button, .tox .tox-tbtn, .tox .tox-mbtn, .tox .tox-statusbar {
+      font-family: 'Outfit', sans-serif !important;
+    }
+    .tox .tox-placeholder {
+      font-family: 'Outfit', sans-serif !important;
+      font-size: 15px !important;
+      color: #94a3b8 !important;
+    }
+
     .ai-hero-box {
       background: linear-gradient(135deg, rgba(234, 88, 12, 0.07) 0%, rgba(15, 23, 42, 0.03) 100%);
       border: 1px solid rgba(234, 88, 12, 0.28);
@@ -747,16 +765,19 @@ $posts = $pdo->query('
       disableAllAI(false);
     }
 
-    // Initialize TinyMCE Rich Text Editor
+    // Initialize TinyMCE Rich Text Editor with Outfit Font
     tinymce.init({
       selector: '#blog-content-editor',
       plugins: 'image link lists table code preview fullscreen autolink media',
-      toolbar: 'formatselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | code preview fullscreen',
+      toolbar: 'fontfamily fontsize | formatselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | code preview fullscreen',
       menubar: 'edit view insert format table tools',
-      font_size_formats: '8px 10px 12px 14px 16px 18px 20px 22px 24px 28px 32px 36px',
-      font_formats: 'Outfit=Outfit, sans-serif; Arial=arial,helvetica,sans-serif; Georgia=georgia,garamond,serif; Courier New=courier new,courier,monospace;',
+      font_family_formats: 'Outfit=Outfit, sans-serif; Arial=arial,helvetica,sans-serif; Georgia=georgia,garamond,serif; Courier New=courier new,courier,monospace;',
+      font_size_formats: '10px 12px 14px 15px 16px 18px 20px 22px 24px 28px 32px 36px 48px',
       height: 480,
       branding: false,
+      content_css: [
+        'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap'
+      ],
       mobile: {
         menubar: true,
         toolbar: 'formatselect | bold italic underline | bullist numlist | link image'
@@ -795,17 +816,89 @@ $posts = $pdo->query('
         }
       },
       content_style: `
-        body { 
-          font-family: Outfit, sans-serif; 
-          font-size: 15px; 
-          line-height: 1.7; 
-          color: #0f172a;
-          padding: 12px;
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+          box-sizing: border-box;
         }
-        h1, h2, h3, h4 { font-weight: 800; color: #0f172a; margin-top: 1.4em; }
-        p { margin-bottom: 1.2em; }
-        img { max-width: 100%; height: auto; }
-        code { background: #f1f5f9; padding: 2px 6px; font-size: 0.9em; }
+        
+        html, body { 
+          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; 
+          font-size: 15.5px; 
+          line-height: 1.75; 
+          color: #0f172a;
+          padding: 16px;
+          background: #ffffff;
+        }
+        
+        h1, h2, h3, h4, h5, h6 { 
+          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; 
+          font-weight: 800; 
+          color: #0f172a; 
+          margin-top: 1.5em; 
+          margin-bottom: 0.5em;
+          line-height: 1.3;
+        }
+        
+        p, li, blockquote, table, td, th, div, span, strong, em, a { 
+          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; 
+        }
+        
+        p { 
+          margin-bottom: 1.3em; 
+          font-size: 15.5px;
+          line-height: 1.75;
+          color: #1e293b;
+        }
+        
+        blockquote {
+          border-left: 4px solid #ea580c;
+          background: rgba(234, 88, 12, 0.04);
+          padding: 14px 18px;
+          margin: 1.5em 0;
+          font-style: italic;
+          color: #334155;
+        }
+        
+        ul, ol {
+          padding-left: 24px;
+          margin-bottom: 1.3em;
+        }
+        
+        li {
+          margin-bottom: 0.5em;
+          line-height: 1.7;
+        }
+        
+        img { 
+          max-width: 100%; 
+          height: auto; 
+          margin: 1.2em 0;
+        }
+        
+        code { 
+          font-family: 'Courier New', Courier, monospace !important; 
+          background: #f1f5f9; 
+          padding: 2px 6px; 
+          font-size: 0.9em; 
+          color: #0f172a;
+        }
+        
+        pre {
+          font-family: 'Courier New', Courier, monospace !important; 
+          background: #0f172a;
+          color: #f8fafc;
+          padding: 16px;
+          overflow-x: auto;
+          line-height: 1.5;
+          margin: 1.5em 0;
+        }
+        pre code {
+          background: transparent !important;
+          color: inherit !important;
+          padding: 0 !important;
+        }
       `,
       setup: function(editor) {
         editor.on('change', function() {

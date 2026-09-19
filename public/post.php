@@ -86,6 +86,144 @@ $commentsCount = count($comments);
 require_once __DIR__ . '/header.php';
 ?>
 
+<style>
+  /* ═══════════════════════════════════════════════════════════ */
+  /* ENFORCE OUTFIT FONT FOR ARTICLE & BLOG POST VIEW          */
+  /* ═══════════════════════════════════════════════════════════ */
+  #blog-post, 
+  #blog-post *,
+  .blog-article-content,
+  .blog-article-content * {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  .blog-article-content {
+    max-width: 100%;
+    margin-bottom: 40px;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text, #0f172a);
+    word-break: break-word;
+  }
+
+  .blog-article-content h1,
+  .blog-article-content h2,
+  .blog-article-content h3,
+  .blog-article-content h4,
+  .blog-article-content h5,
+  .blog-article-content h6 {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-weight: 800;
+    color: var(--text, #0f172a);
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.28;
+    letter-spacing: -0.02em;
+  }
+
+  .blog-article-content h1 { font-size: 1.9rem; }
+  .blog-article-content h2 { font-size: 1.55rem; }
+  .blog-article-content h3 { font-size: 1.3rem; }
+  .blog-article-content h4 { font-size: 1.15rem; }
+
+  .blog-article-content p {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    margin-bottom: 1.4rem;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #1e293b;
+  }
+
+  .blog-article-content blockquote {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    border-left: 4px solid var(--accent, #ea580c);
+    background: rgba(234, 88, 12, 0.05);
+    padding: 16px 22px;
+    margin: 1.8rem 0;
+    font-style: italic;
+    color: #334155;
+  }
+
+  .blog-article-content ul,
+  .blog-article-content ol {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    padding-left: 28px;
+    margin-bottom: 1.4rem;
+    color: #1e293b;
+  }
+
+  .blog-article-content li {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    margin-bottom: 0.55rem;
+    line-height: 1.75;
+  }
+
+  .blog-article-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 1.8rem 0;
+    border: 1px solid var(--light-gray, rgba(15, 23, 42, 0.08));
+    display: block;
+  }
+
+  .blog-article-content code {
+    font-family: 'Courier New', Courier, monospace !important;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    font-size: 0.9em;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+  }
+
+  .blog-article-content pre {
+    font-family: 'Courier New', Courier, monospace !important;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 18px 22px;
+    overflow-x: auto;
+    line-height: 1.55;
+    margin: 1.8rem 0;
+  }
+
+  .blog-article-content pre code {
+    font-family: 'Courier New', Courier, monospace !important;
+    background: transparent !important;
+    border: none !important;
+    color: inherit !important;
+    padding: 0 !important;
+  }
+
+  .blog-article-content a {
+    color: var(--accent, #ea580c);
+    text-decoration: underline;
+    font-weight: 600;
+  }
+
+  .blog-article-content a:hover {
+    color: var(--accent-muted, #c2410c);
+  }
+
+  .blog-article-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.8rem 0;
+    font-size: 0.95rem;
+  }
+
+  .blog-article-content th,
+  .blog-article-content td {
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+  }
+
+  .blog-article-content th {
+    background: #f8fafc;
+    font-weight: 700;
+    color: #0f172a;
+  }
+</style>
+
 <main class="container">
   <section id="blog-post" class="section-row" style="border-bottom: none;">
     <div class="section-label">Blog</div>
@@ -139,14 +277,12 @@ require_once __DIR__ . '/header.php';
         </div>
       </div>
 
-      <!-- Post Content -->
-      <article style="max-width: 100%; margin-bottom: 40px; line-height: 1.8; color: var(--text);">
-        <div style="font-size: 1.02rem;">
-          <?php 
-          // Display HTML content from rich editor
-          echo $post['content']; 
-          ?>
-        </div>
+      <!-- Post Content (Outfit Font Enforced) -->
+      <article class="blog-article-content">
+        <?php 
+        // Display HTML content from rich editor
+        echo $post['content']; 
+        ?>
       </article>
 
       <!-- Tags -->
