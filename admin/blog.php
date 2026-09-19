@@ -139,7 +139,7 @@ $posts = $pdo->query('
                   <?php if (!empty($editingPost['featured_image'])): ?>
                     <img id="featured-preview" src="<?php echo htmlspecialchars($editingPost['featured_image']); ?>?v=<?php echo time(); ?>" style="max-width: 100%; max-height: 150px; object-fit: cover;">
                   <?php else: ?>
-                    <small style="color: var(--muted); text-align: center;">No image selected</small>
+                    <small id="featured-preview-placeholder" style="color: var(--muted); text-align: center;">No image selected</small>
                   <?php endif; ?>
                 </div>
               </div>
@@ -246,6 +246,29 @@ $posts = $pdo->query('
       });
     }
 
+    function updateFeaturedPreview(url) {
+      const container = document.getElementById('featured-preview-container');
+      if (!container) return;
+      if (url) {
+        let preview = document.getElementById('featured-preview');
+        if (!preview) {
+          preview = document.createElement('img');
+          preview.id = 'featured-preview';
+          preview.style.maxWidth = '100%';
+          preview.style.maxHeight = '150px';
+          preview.style.objectFit = 'cover';
+          container.innerHTML = '';
+          container.appendChild(preview);
+        }
+        preview.src = url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        preview.style.display = 'block';
+        const placeholder = document.getElementById('featured-preview-placeholder');
+        if (placeholder) placeholder.remove();
+      } else {
+        container.innerHTML = '<small id="featured-preview-placeholder" style="color: var(--muted); text-align: center;">No image selected</small>';
+      }
+    }
+
     // Featured Image Upload Handler
     document.getElementById('featured-image-upload').addEventListener('change', async function(e) {
       const file = e.target.files[0];
@@ -269,11 +292,8 @@ $posts = $pdo->query('
         if (data.success && data.location) {
           // Update the URL field
           document.getElementById('featured_image_url').value = data.location;
-          // Update preview
-          const preview = document.getElementById('featured-preview');
-          preview.src = data.location + '?v=' + Date.now();
-          preview.style.display = 'block';
-          document.querySelector('#featured-preview-container small')?.remove();
+          // Update preview safely
+          updateFeaturedPreview(data.location);
           alert('Featured image uploaded successfully!');
         } else {
           alert('Upload failed: ' + (data.error || 'Unknown error'));
@@ -285,21 +305,10 @@ $posts = $pdo->query('
 
     // Update featured image preview when URL changes
     document.getElementById('featured_image_url').addEventListener('change', function(e) {
-      const url = e.target.value.trim();
-      const container = document.getElementById('featured-preview-container');
-      if (url) {
-        let preview = document.getElementById('featured-preview');
-        if (!preview) {
-          preview = document.createElement('img');
-          preview.id = 'featured-preview';
-          preview.style.maxWidth = '100%';
-          preview.style.maxHeight = '150px';
-          preview.style.objectFit = 'cover';
-          container.innerHTML = '';
-          container.appendChild(preview);
-        }
-        preview.src = url + '?v=' + Date.now();
-      }
+      updateFeaturedPreview(e.target.value.trim());
+    });
+    document.getElementById('featured_image_url').addEventListener('input', function(e) {
+      updateFeaturedPreview(e.target.value.trim());
     });
 
 
