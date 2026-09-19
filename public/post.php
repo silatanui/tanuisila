@@ -125,26 +125,27 @@ require_once __DIR__ . '/header.php';
   }
 
   /* ═══════════════════════════════════════════════════════════ */
-  /* FLUID BLOG READING LAYOUT (MAINTAINS SITE CONTAINER)       */
+  /* COMPACT FOCUSED BLOG READING LAYOUT (15% REDUCED MAX-WIDTH)*/
   /* ═══════════════════════════════════════════════════════════ */
   .container.post-page-container {
-    max-width: 1320px; /* Aligned with standard site container */
-    padding: 0 clamp(20px, 4vw, 50px);
+    max-width: 1120px; /* Reduced by 15% from 1320px for cozy, focused reading */
+    padding: 0 clamp(16px, 3vw, 36px);
     width: 100%;
     box-sizing: border-box;
+    margin: 0 auto;
   }
 
   #blog-post.section-row {
-    display: block !important; /* Full width inside container without left column squeeze */
-    padding: 36px 0 60px 0;
+    display: block !important;
+    padding: 30px 0 54px 0;
   }
 
   .post-top-breadcrumb {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 24px;
-    font-size: 0.8rem;
+    margin-bottom: 22px;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -159,11 +160,11 @@ require_once __DIR__ . '/header.php';
     color: var(--accent);
   }
 
-  /* Two-column Layout: Article on Left, More Articles Sidebar on Right */
+  /* Two-column Layout: Focused Article on Left, Compact Sidebar on Right */
   .post-layout-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 290px;
-    gap: 36px;
+    grid-template-columns: minmax(0, 1fr) 275px;
+    gap: 32px;
     align-items: start;
   }
 
@@ -173,7 +174,7 @@ require_once __DIR__ . '/header.php';
 
   .post-sidebar-col {
     position: relative;
-    width: 290px;
+    width: 275px;
   }
 
   .post-sidebar-sticky {
@@ -181,13 +182,13 @@ require_once __DIR__ . '/header.php';
     top: 90px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 992px) {
     .post-layout-grid {
       grid-template-columns: 1fr;
-      gap: 36px;
+      gap: 32px;
     }
     .post-sidebar-col {
       width: 100%;
@@ -479,7 +480,7 @@ require_once __DIR__ . '/header.php';
           
           <!-- Featured Image -->
           <?php if (!empty($post['featured_image'])): ?>
-            <div class="img-skeleton-wrap" style="width: 100%; height: 440px; margin-bottom: 32px;">
+            <div class="img-skeleton-wrap" style="width: 100%; height: 360px; margin-bottom: 30px;">
               <img 
                 src="<?php echo htmlspecialchars(portfolioAssetUrl($post['featured_image'])); ?>" 
                 alt="<?php echo htmlspecialchars($post['title']); ?>" 
