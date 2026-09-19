@@ -11,7 +11,16 @@ require_once __DIR__ . '/header.php';
       <h2>I am a Computer Scientist who enjoys turning ideas into working technology.</h2>
       
       <div style="margin-bottom: 24px; border: 1px solid var(--light-gray); padding: 12px; background: var(--soft-bg);">
-        <img src="https://edu.unideb.hu/elemek/discover1.jpg" alt="University of Debrecen" style="width: 100%; height: auto; object-fit: cover; border: none;">
+        <div class="img-skeleton-wrap" style="aspect-ratio: 16 / 7; min-height: 240px;">
+          <img 
+            src="https://edu.unideb.hu/elemek/discover1.jpg" 
+            alt="University of Debrecen" 
+            loading="lazy"
+            decoding="async"
+            style="width: 100%; height: 100%; object-fit: cover; border: none;"
+            onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
+          >
+        </div>
       </div>
 
       <!-- MAIN EDITORIAL BIOGRAPHY BODY (Clean High density layouts) -->

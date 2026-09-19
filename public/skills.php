@@ -24,31 +24,31 @@ require_once __DIR__ . '/header.php';
         
         <!-- SIDE NAVIGATION TABS -->
         <div class="skills-categories-nav" style="display: flex; flex-direction: column; gap: 6px;">
-          <button class="skill-nav-btn active" onclick="switchSkillTab('tab-software')">
+          <button class="skill-nav-btn active" onclick="switchSkillTab(event, 'tab-software')">
             <span class="num">01</span> Software Development
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-web')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-web')">
             <span class="num">02</span> Web Engineering
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-database')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-database')">
             <span class="num">03</span> Databases & Storage
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-ai')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-ai')">
             <span class="num">04</span> AI & Machine Learning
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-alg')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-alg')">
             <span class="num">05</span> Algorithms & Complexity
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-crypto')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-crypto')">
             <span class="num">06</span> Security & Cryptography
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-cloud')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-cloud')">
             <span class="num">07</span> Cloud & IT Infrastructure
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-design')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-design')">
             <span class="num">08</span> UI/UX & Digital Design
           </button>
-          <button class="skill-nav-btn" onclick="switchSkillTab('tab-academic')">
+          <button class="skill-nav-btn" onclick="switchSkillTab(event, 'tab-academic')">
             <span class="num">09</span> Academia, Research & Teaching
           </button>
         </div>
@@ -557,7 +557,7 @@ require_once __DIR__ . '/header.php';
 
 <script>
   // INSTANT TAB SWITCHING INTERACTIVE ENGINE
-  function switchSkillTab(tabId) {
+  function switchSkillTab(event, tabId) {
     // Nav Button Highlight States
     const buttons = document.querySelectorAll('.skill-nav-btn');
     buttons.forEach(btn => {

@@ -16,13 +16,17 @@ function renderTopbar($pageTitle = 'Dashboard') {
     return '
     <header class="topbar">
         <h1>' . htmlspecialchars($pageTitle) . '</h1>
-        <div class="top-actions" style="display:flex; align-items:center; gap:16px;">
-          <a href="messages.php" style="position:relative; text-decoration:none; color:var(--text); font-size:1.25rem;">
-            <i class="fa-solid fa-envelope"></i>
+        <div class="top-actions" style="display:flex; align-items:center; gap:12px;">
+          <a href="messages.php" class="btn" style="position:relative; text-decoration:none; padding: 9px 14px; background: #ffffff;">
+            <i class="fa-solid fa-envelope" style="color: var(--primary);"></i> Messages
             ' . $badgeHtml . '
           </a>
-          <a class="btn" href="../public/index.php" target="_blank">Preview</a>
-          <a class="btn danger" href="logout.php">Logout</a>
+          <a class="btn" href="../index.php" target="_blank" style="background: #ffffff;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> View Live Site
+          </a>
+          <a class="btn danger" href="logout.php">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+          </a>
         </div>
     </header>';
 }

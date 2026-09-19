@@ -4,8 +4,10 @@ require_once __DIR__ . '/../config/config.php';
 function renderSidebar($active = '') {
     global $pdo;
     $msgCount = 0;
+    $pendingComments = 0;
     try {
         $msgCount = (int)$pdo->query('SELECT COUNT(*) FROM `messages` WHERE `is_read` = 0')->fetchColumn();
+        $pendingComments = (int)$pdo->query("SELECT COUNT(*) FROM `blog_comments` WHERE `status` = 'pending'")->fetchColumn();
     } catch (Throwable $e) {}
 
     $links = [
@@ -16,6 +18,7 @@ function renderSidebar($active = '') {
         'experience.php' => ['icon' => 'fa-briefcase', 'label' => 'Work Experience'],
         'publications.php' => ['icon' => 'fa-book-open', 'label' => 'Publications'],
         'blog.php' => ['icon' => 'fa-pen-nib', 'label' => 'Blog Posts'],
+        'comments.php' => ['icon' => 'fa-comments', 'label' => 'Blog Comments', 'badge' => $pendingComments],
         'projects.php' => ['icon' => 'fa-rocket', 'label' => 'Projects'],
         'settings.php' => ['icon' => 'fa-gear', 'label' => 'Settings'],
         'logo.php' => ['icon' => 'fa-image', 'label' => 'Logo']
@@ -44,7 +47,7 @@ function renderSidebar($active = '') {
     $html .= '
       </nav>
       <div class="sidebar-footer">
-        <a href="../public/index.php" target="_blank">View portfolio</a>
+        <a href="../index.php" target="_blank">View portfolio</a>
         <a href="logout.php">Logout</a>
       </div>
     </aside>';

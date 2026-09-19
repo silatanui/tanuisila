@@ -27,7 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $pdo->prepare('INSERT INTO profile (id, full_name, headline, bio, email, phone, location, website, linkedin, github, summary) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), headline = VALUES(headline), bio = VALUES(bio), email = VALUES(email), phone = VALUES(phone), location = VALUES(location), website = VALUES(website), linkedin = VALUES(linkedin), github = VALUES(github), summary = VALUES(summary)');
         $stmt->execute([$full_name, $headline, $bio, $email, $phone, $location, $website, $linkedin, $github, $summary]);
-        $notice = 'Personal details saved successfully.';
+
+        // Keep legacy contact table synchronized
+        $stmtContact = $pdo->prepare('INSERT INTO contact (id, email, location, phone) VALUES (1, ?, ?, ?) ON DUPLICATE KEY UPDATE email = VALUES(email), location = VALUES(location), phone = VALUES(phone)');
+        $stmtContact->execute([$email, $location, $phone]);
+
+        $notice = 'Personal & contact details saved successfully.';
     } catch (Throwable $e) {
         $error = 'Unable to save profile. ' . $e->getMessage();
     }

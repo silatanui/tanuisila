@@ -81,14 +81,20 @@ if (isset($_GET['delete']) && $_GET['delete'] === 'blog_posts') {
     }
 }
 
-$posts = $pdo->query('SELECT * FROM blog_posts ORDER BY created_at DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
+$posts = $pdo->query('
+    SELECT p.*, 
+           (SELECT COUNT(*) FROM blog_comments c WHERE c.post_id = p.id) AS total_comments,
+           (SELECT COUNT(*) FROM blog_comments c WHERE c.post_id = p.id AND c.status = "pending") AS pending_comments
+    FROM blog_posts p 
+    ORDER BY p.created_at DESC, p.id DESC
+')->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Blog Posts — Admin</title>
+  <title>Blog Posts - Admin</title>
   <link rel="icon" type="image/jpeg" href="../Tanui-Sila-Logo-v3.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -157,7 +163,7 @@ $posts = $pdo->query('SELECT * FROM blog_posts ORDER BY created_at DESC, id DESC
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
               <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--primary);"></i>
               <strong style="color: var(--primary);">AI Blog Automation</strong>
-              <span style="font-size: 0.8rem; color: var(--muted);"> — Powered by GPT</span>
+              <span style="font-size: 0.8rem; color: var(--muted);"> - Powered by GPT</span>
             </div>
             <p style="margin: 0 0 12px 0; font-size: 0.9rem; color: var(--muted);">Automatically generate SEO-optimized content, excerpts, tags, and analyze readability.</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
@@ -208,6 +214,9 @@ $posts = $pdo->query('SELECT * FROM blog_posts ORDER BY created_at DESC, id DESC
                 <div class="list-meta">
                   <span class="tag"><?php echo htmlspecialchars($post['category'] ?? 'Uncategorized'); ?></span>
                   <?php if (!empty($post['reading_time'])): ?><span class="tag"><?php echo (int)$post['reading_time']; ?> min read</span><?php endif; ?>
+                  <a href="comments.php?post_id=<?php echo (int)$post['id']; ?>" class="tag" style="text-decoration: none; color: var(--text);" title="View comments for this post">
+                    <i class="fa-solid fa-comments" style="color: var(--primary);"></i> <?php echo (int)($post['total_comments'] ?? 0); ?> comments<?php if (!empty($post['pending_comments'])): ?> <span style="color: var(--warning); font-weight: 800;">(<?php echo (int)$post['pending_comments']; ?> pending)</span><?php endif; ?>
+                  </a>
                   <a class="btn" href="?edit=<?php echo (int) $post['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
                   <a class="btn danger" href="?delete=blog_posts&id=<?php echo (int) $post['id']; ?>" onclick="return confirm('Delete this post?');"><i class="fa-solid fa-trash"></i> Delete</a>
                 </div>

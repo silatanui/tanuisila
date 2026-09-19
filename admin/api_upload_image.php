@@ -24,7 +24,16 @@ if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-$uploadDir = __DIR__ . '/../assets/images/blog/';
+$type = preg_replace('/[^a-z0-9_-]/i', '', $_POST['type'] ?? 'blog');
+if ($type === 'projects' || $type === 'project') {
+    $folder = 'projects';
+    $prefix = 'project-';
+} else {
+    $folder = 'blog';
+    $prefix = 'blog-';
+}
+
+$uploadDir = __DIR__ . '/../assets/images/' . $folder . '/';
 if (!is_dir($uploadDir)) {
     if (!mkdir($uploadDir, 0755, true)) {
         json_response(['error' => 'Failed to create upload directory'], 500);
@@ -33,35 +42,49 @@ if (!is_dir($uploadDir)) {
 }
 
 $file = $_FILES['file'];
-$mimeType = $file['type'];
+// Verify real MIME type from file contents (not the browser-supplied value)
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$mimeType = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
 $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
 if (!in_array($mimeType, $allowedMimes)) {
-    json_response(['error' => 'Invalid file type. Only images are allowed.'], 400);
+    json_response(['error' => 'Invalid file type. Only JPG, PNG, GIF, WebP, SVG images are allowed.'], 400);
     exit;
 }
 
 $fileSize = $file['size'];
-$maxSize = 5 * 1024 * 1024; // 5MB
+$maxSize = 10 * 1024 * 1024; // 10MB
 
 if ($fileSize > $maxSize) {
-    json_response(['error' => 'File too large. Maximum 5MB allowed.'], 400);
+    json_response(['error' => 'File too large. Maximum 10MB allowed.'], 400);
     exit;
 }
 
-// Generate unique filename
-$ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-$filename = 'blog-' . time() . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
+// Generate clean unique filename
+$ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+if ($ext === 'jpeg') { $ext = 'jpg'; }
+$filename = $prefix . time() . '-' . bin2hex(random_bytes(3)) . '.' . $ext;
 $filePath = $uploadDir . $filename;
 
 if (move_uploaded_file($file['tmp_name'], $filePath)) {
-    // Return the URL for the editor
-    $imageUrl = '/tanuisila/assets/images/blog/' . $filename;
+    // Also copy to public directory for easy fallback
+    if ($folder === 'projects') {
+        @copy($filePath, __DIR__ . '/../public/' . $filename);
+    }
+
+    // Dynamic URL resolution based on script path
+    $scriptDir = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/api_upload_image.php'));
+    $basePath = $scriptDir === '/' || $scriptDir === '\\' ? '' : rtrim(str_replace('\\', '/', $scriptDir), '/');
+    $imageUrl = $basePath . '/assets/images/' . $folder . '/' . $filename;
+    
     json_response([
         'location' => $imageUrl,
+        'filename' => $filename,
+        'url' => $imageUrl,
         'success' => true
     ]);
 } else {
-    json_response(['error' => 'Failed to save file'], 500);
+    json_response(['error' => 'Failed to save file to server storage'], 500);
 }
 ?>

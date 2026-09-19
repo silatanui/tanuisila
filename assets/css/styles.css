@@ -52,77 +52,7 @@ a:hover {
   padding: 0 50px;
 }
 
-/* HEADER */
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(248, 249, 250, 0.9);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--light-gray);
-  color: var(--text);
-}
-
-.site-header .container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 80px;
-}
-
-.site-header .brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.site-header .logo {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  border: 1px solid var(--light-gray);
-  background: var(--soft-bg);
-  padding: 4px;
-}
-
-.site-header h1 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--text);
-}
-
-.top-nav {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.top-nav a {
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text);
-  opacity: 0.8;
-}
-
-.top-nav a:hover {
-  opacity: 1;
-}
-
-.header-cta {
-  display: inline-flex;
-  padding: 10px 18px;
-  background: var(--text);
-  color: #ffffff;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
+/* HEADER - see header.php <style> block for .tb and .sh rules */
 /* HERO */
 .hero {
   padding: 90px 0 70px;
@@ -505,54 +435,6 @@ a:hover {
     padding: 0 20px;
   }
   
-  .site-header .container {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    text-align: left;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    gap: 12px;
-    min-height: auto;
-  }
-
-  .site-header .brand {
-    flex-direction: row;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .site-header .logo {
-    width: 36px;
-    height: 36px;
-  }
-
-  .site-header h1 {
-    font-size: 0.95rem;
-  }
-
-  .site-header .brand > div > p {
-    display: block;
-  }
-  
-  .top-nav {
-    width: 100%;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  
-  .top-nav a {
-    font-size: 0.78rem;
-    padding: 4px 6px;
-  }
-  
-  .header-cta {
-    width: 100%;
-    text-align: center;
-    padding: 12px;
-  }
-  
   .hero {
     padding: 40px 0;
   }
@@ -730,6 +612,86 @@ a:hover {
   .cookie-banner .actions button {
     flex: 1;
     text-align: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SKELETON SHIMMER IMAGE LOADING SYSTEM
+   ═══════════════════════════════════════════════════════════════════ */
+.img-skeleton-wrap {
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0;
+  display: block;
+}
+
+.img-skeleton-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.6s infinite ease-in-out;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes skeleton-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.img-skeleton-wrap img,
+.img-skeleton-wrap picture img {
+  opacity: 0;
+  filter: blur(8px);
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), filter 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, filter;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.img-skeleton-wrap.loaded::before,
+.img-skeleton-wrap.is-loaded::before {
+  display: none !important;
+}
+
+.img-skeleton-wrap.loaded,
+.img-skeleton-wrap.is-loaded {
+  background-color: transparent !important;
+}
+
+.img-skeleton-wrap.loaded img,
+.img-skeleton-wrap.loaded picture img,
+.img-skeleton-wrap.is-loaded img,
+.img-skeleton-wrap.is-loaded picture img {
+  opacity: 1 !important;
+  filter: blur(0) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .img-skeleton-wrap::before {
+    animation: none !important;
+    display: none !important;
+  }
+  .img-skeleton-wrap img,
+  .img-skeleton-wrap picture img {
+    transition: none !important;
+    filter: none !important;
+    opacity: 1 !important;
   }
 }
 

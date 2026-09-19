@@ -23,11 +23,18 @@ require_once __DIR__ . '/header.php';
             }
           ?>
           <div class="timeline-row">
-            <div class="time-meta"><?php echo htmlspecialchars($item['start_date']); ?> — <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></div>
+            <div class="time-meta"><?php echo htmlspecialchars($item['start_date']); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></div>
             <div class="timeline-desc" style="display: flex; gap: 20px; align-items: flex-start;">
               <?php if (!empty($companyLogo)): ?>
-                <div style="flex-shrink: 0; width: 64px; height: 64px; padding: 4px; background: var(--soft-bg); border: 1px solid var(--light-gray); display: flex; align-items: center; justify-content: center;">
-                  <img src="<?php echo htmlspecialchars($companyLogo); ?>?v=<?php echo @filemtime(__DIR__ . '/' . $companyLogo); ?>" alt="<?php echo htmlspecialchars($item['company']); ?> Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                <div class="img-skeleton-wrap" style="flex-shrink: 0; width: 64px; height: 64px; padding: 4px; background: var(--soft-bg); border: 1px solid var(--light-gray); display: flex; align-items: center; justify-content: center;">
+                  <img 
+                    src="<?php echo htmlspecialchars(appUrl('public/' . $companyLogo), ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo @filemtime(__DIR__ . '/' . $companyLogo); ?>" 
+                    alt="<?php echo htmlspecialchars($item['company']); ?> Logo" 
+                    loading="lazy"
+                    decoding="async"
+                    style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                    onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
+                  >
                 </div>
               <?php endif; ?>
               <div style="flex-grow: 1;">

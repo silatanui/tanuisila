@@ -14,7 +14,7 @@ try {
     echo "<ul>";
     foreach ($tables as $t) {
         $c = $pdo->query("SELECT COUNT(*) FROM `" . $t . "`")->fetchColumn();
-        echo "<li>" . htmlspecialchars($t) . " — " . intval($c) . " rows</li>";
+        echo "<li>" . htmlspecialchars($t) . " - " . intval($c) . " rows</li>";
     }
     echo "</ul>";
 } catch (Exception $e) {

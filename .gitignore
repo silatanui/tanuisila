@@ -1,21 +1,35 @@
-# Environment variables
+# Environment variables (Never commit secrets!)
 .env
 .env.local
 .env.*.local
+.env.production
 
-# IDE
+# Database Dumps & Backups (Keep private)
+*.sql
+*.sql.gz
+*.sqlite
+
+# Archives & Deployment Packages
+*.zip
+*.tar.gz
+*.rar
+
+# IDE & Editor files
+.continue/
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Dependencies
 vendor/
 node_modules/
 
-# Logs
+# Logs & Temporary files
 *.log
+scratch/

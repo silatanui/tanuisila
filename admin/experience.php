@@ -155,10 +155,10 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
                 <?php foreach ($experience as $item): ?>
                   <tr>
                     <td><?php echo htmlspecialchars($item['company']); ?></td>
-                    <td><?php echo htmlspecialchars($item['role_name'] ?: '—'); ?></td>
-                    <td><?php echo htmlspecialchars($item['location'] ?: '—'); ?></td>
-                    <td><?php echo htmlspecialchars($item['start_date'] ?: '—'); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></td>
-                    <td><?php echo nl2br(htmlspecialchars($item['description'] ?: '—')); ?></td>
+                    <td><?php echo htmlspecialchars($item['role_name'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['location'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['start_date'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></td>
+                    <td><?php echo nl2br(htmlspecialchars($item['description'] ?: '-')); ?></td>
                     <td>
                       <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
                       <a class="btn danger small" href="?delete=experience&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>

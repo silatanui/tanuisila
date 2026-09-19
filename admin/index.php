@@ -216,9 +216,13 @@ $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC
 $blog_posts = $pdo->query('SELECT * FROM blog_posts ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
 $messages = [];
 $unreadMessagesCount = 0;
+$totalCommentsCount = 0;
+$pendingCommentsCount = 0;
 try {
     $messages = $pdo->query('SELECT * FROM messages ORDER BY id DESC')->fetchAll(PDO::FETCH_ASSOC);
     $unreadMessagesCount = (int)$pdo->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
+    $totalCommentsCount = (int)$pdo->query('SELECT COUNT(*) FROM blog_comments')->fetchColumn();
+    $pendingCommentsCount = (int)$pdo->query("SELECT COUNT(*) FROM blog_comments WHERE status = 'pending'")->fetchColumn();
 } catch (Throwable $e) {}
 ?>
 <!doctype html>
@@ -290,19 +294,21 @@ try {
       <?php endif; ?>
 
       <?php if ($unreadMessagesCount > 0): ?>
-        <div style="background: #fee2e2; border: 1px solid #fca5a5; padding: 14px; margin-bottom: 20px; color: #991b1b; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-bell fa-bounce" style="font-size: 1.1rem; color: #ef4444;"></i>
-            <span>You have received <?php echo $unreadMessagesCount; ?> unread client message(s) in your Inbox!</span>
+        <div class="error-box" style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--danger);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="fa-solid fa-bell fa-bounce" style="font-size: 1.15rem; color: var(--danger);"></i>
+            <span style="font-weight: 700; color: var(--text);">You have <?php echo $unreadMessagesCount; ?> unread message(s) in your Inbox!</span>
           </div>
-          <a href="messages.php" class="btn" style="padding: 6px 12px; background: #991b1b; color: #fff; font-size: 0.8rem; border: none; text-decoration: none;">View Messages</a>
+          <a href="messages.php" class="btn primary small" style="box-shadow: none;">
+            <i class="fa-solid fa-envelope-open-text"></i> View Messages
+          </a>
         </div>
       <?php endif; ?>
 
       <section class="stats-grid">
-        <div class="stat-card" style="border-left: 4px solid #ef4444;">
+        <div class="stat-card" style="border-top-color: var(--danger);">
           <span class="label">Unread Messages</span>
-          <div class="value" style="color: #ef4444;"><?php echo $unreadMessagesCount; ?></div>
+          <div class="value" style="color: var(--danger);"><?php echo $unreadMessagesCount; ?></div>
         </div>
         <div class="stat-card">
           <span class="label">Education</span>
@@ -321,64 +327,73 @@ try {
           <div class="value"><?php echo count($blog_posts); ?></div>
         </div>
         <div class="stat-card">
+          <span class="label">Comments</span>
+          <div class="value"><?php echo $totalCommentsCount; ?></div>
+        </div>
+        <div class="stat-card">
           <span class="label">Projects</span>
           <div class="value"><?php echo count($projects); ?></div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Manage portfolio sections</h2>
-        <div class="quick-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
-          <a href="profile.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-user"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Personal Details</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Update your bio, contact details, and profile summary.</p>
+        <h2>Manage Portfolio Sections</h2>
+        <div class="quick-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:18px;">
+          <a href="profile.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-user"></i></div>
+            <h3>Personal Details</h3>
+            <p>Update your bio, contact coordinates, social networks, and profile summary.</p>
           </a>
 
-          <a href="education.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-graduation-cap"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Education</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Manage schools, degrees, and academic background.</p>
+          <a href="education.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-graduation-cap"></i></div>
+            <h3>Education</h3>
+            <p>Manage universities, degrees, honors, and academic backgrounds.</p>
           </a>
 
-          <a href="experience.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-briefcase"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Experience</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Track employers, roles, timelines, and responsibilities.</p>
+          <a href="experience.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-briefcase"></i></div>
+            <h3>Experience</h3>
+            <p>Track engineering roles, appointments, timelines, and milestones.</p>
           </a>
 
-          <a href="publications.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-book-open"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Publications</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Add papers, talks, venues, and publication links.</p>
+          <a href="publications.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-book-open"></i></div>
+            <h3>Publications</h3>
+            <p>Add research papers, conference talks, proceedings, and DOI links.</p>
           </a>
 
-          <a href="blog.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-pen-nib"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Blog Posts</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Create and manage your latest writing and updates.</p>
+          <a href="blog.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-pen-nib"></i></div>
+            <h3>Blog Posts</h3>
+            <p>Write, edit, and publish technical insights, tutorials, and system updates.</p>
           </a>
 
-          <a href="projects.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-rocket"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Projects</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Showcase your featured work and portfolio highlights.</p>
+          <a href="comments.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-comments"></i></div>
+            <h3>Blog Comments</h3>
+            <p>Review, moderate, approve, or remove discussion comments on articles.</p>
           </a>
 
-          <a href="settings.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-gear"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Settings</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Adjust portfolio title, tagline, theme, and site preferences.</p>
+          <a href="projects.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-rocket"></i></div>
+            <h3>Projects</h3>
+            <p>Showcase software systems, live applications, and screenshots.</p>
           </a>
 
-          <a href="logo.php" class="quick-card" style="display:block; background: var(--panel-alt); border:1px solid var(--line); padding:18px; color: var(--text); box-shadow: 0 4px 12px var(--shadow);">
-            <div class="icon-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; margin-bottom:12px; background: var(--soft); border:1px solid #dbe8ff; color: var(--primary);"><i class="fa-solid fa-image"></i></div>
-            <h3 style="margin:0 0 8px; font-size:1.08rem;">Logo</h3>
-            <p style="margin:0; color: var(--muted); line-height:1.6; font-size:0.93rem;">Upload or replace the brand image used on the portfolio.</p>
+          <a href="settings.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-gear"></i></div>
+            <h3>Settings</h3>
+            <p>Adjust site title, branding, preferences, and portfolio configuration.</p>
+          </a>
+
+          <a href="logo.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-image"></i></div>
+            <h3>Logo</h3>
+            <p>Upload or update the brand avatar and emblem used across the portfolio.</p>
           </a>
         </div>
       </section>
-
     </main>
   </div>
 </body>

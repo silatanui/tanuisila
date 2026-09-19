@@ -8,7 +8,7 @@
         <!-- COLUMN 1: CORPORATE IDENTITY BRAND -->
         <div style="display: flex; flex-direction: column; gap: 18px; align-items: flex-start;">
           <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="<?php echo htmlspecialchars($logoFile); ?>" alt="Branding Logo" class="footer-logo" style="width: 44px; height: 44px; object-fit: contain; padding: 4px; background: #fff; border: 1px solid var(--light-gray);">
+            <img src="<?php echo htmlspecialchars(appUrl($logoFile)); ?>" alt="Branding Logo" class="footer-logo" style="width: 44px; height: 44px; object-fit: contain; padding: 4px; background: #fff; border: 1px solid var(--light-gray);">
             <div style="line-height: 1.2;">
               <h4 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text); letter-spacing: -0.04em;"><?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?></h4>
               <small style="color: var(--accent-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">Computer Scientist</small>
@@ -23,10 +23,10 @@
         <div>
           <h5 style="margin:0 0 16px; font-size:0.75rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color: var(--text);">Site Index</h5>
           <ul class="footer-links-list" style="list-style:none; padding:0; margin:0; display:grid; gap:10px; font-size:0.86rem; font-weight:600;">
-            <li><a href="index.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Home Portal</a></li>
-            <li><a href="about.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Biography Details</a></li>
-            <li><a href="projects.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Engineering Portfolio</a></li>
-            <li><a href="research.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Academic Research</a></li>
+            <li><a href="<?php echo appUrl('index.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Home Portal</a></li>
+            <li><a href="<?php echo appUrl('about.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Biography Details</a></li>
+            <li><a href="<?php echo appUrl('projects.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Engineering Portfolio</a></li>
+            <li><a href="<?php echo appUrl('blog.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Articles &amp; Blog</a></li>
           </ul>
         </div>
 
@@ -34,10 +34,10 @@
         <div>
           <h5 style="margin:0 0 16px; font-size:0.75rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color: var(--text);">Specialties Gateway</h5>
           <ul class="footer-links-list" style="list-style:none; padding:0; margin:0; display:grid; gap:10px; font-size:0.86rem; font-weight:600;">
-            <li><a href="skills.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Technical Toolkit Matrix</a></li>
-            <li><a href="experience.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Professional Background</a></li>
-            <li><a href="education.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Completed Academy</a></li>
-            <li><a href="contact.php" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Secure Channels</a></li>
+            <li><a href="<?php echo appUrl('skills.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Technical Toolkit Matrix</a></li>
+            <li><a href="<?php echo appUrl('experience.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Professional Background</a></li>
+            <li><a href="<?php echo appUrl('education.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Completed Academy</a></li>
+            <li><a href="<?php echo appUrl('contact.php'); ?>" style="color: var(--muted); text-decoration:none; transition: color 0.15s ease;">Secure Channels</a></li>
           </ul>
         </div>
 
@@ -61,7 +61,7 @@
 
   <div class="cookie-banner" id="cookieBanner" style="position:fixed; left:0; right:0; bottom:0; background:var(--text); color:#fff; z-index:200; border-top:1px solid var(--light-gray); display: none;">
     <div class="container" style="display:flex; align-items:center; justify-content:space-between; min-height:60px; padding-top:10px; padding-bottom:10px;">
-      <div class="cookie-text" style="font-size:0.82rem; color:#ccc;">We use cookies to enhance your experience. <a href="privacy.php" style="color:#fff; text-decoration:underline;">Privacy Policy</a></div>
+      <div class="cookie-text" style="font-size:0.82rem; color:#ccc;">We use cookies to enhance your experience. <a href="<?php echo appUrl('privacy.php'); ?>" style="color:#fff; text-decoration:underline;">Privacy Policy</a></div>
       <div class="actions" style="display:flex; gap:10px;">
         <button class="manage" onclick="acceptCookies()" style="border:1px solid rgba(255,255,255,0.2); background:transparent; color:#fff; cursor:pointer; font-weight:700; font-size:0.75rem; letter-spacing:0.08em; text-transform:uppercase; padding:8px 16px;">Manage</button>
         <button class="accept" onclick="acceptCookies()" style="border:none; background:#ffffff; color:#0f172a; cursor:pointer; font-weight:700; font-size:0.75rem; letter-spacing:0.08em; text-transform:uppercase; padding:8px 16px;">Accept All</button>
@@ -102,6 +102,49 @@
             if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
         }
         return null;
+    }
+
+    // Automatic Skeleton Shimmer Image Loader
+    function initSkeletonLoaders() {
+      // 1. Resolve explicit .img-skeleton-wrap wrappers
+      const wrappers = document.querySelectorAll('.img-skeleton-wrap');
+      wrappers.forEach(wrap => {
+        const img = wrap.querySelector('img');
+        if (!img) return;
+
+        if (img.complete && img.naturalWidth > 0) {
+          wrap.classList.add('loaded');
+        } else {
+          img.addEventListener('load', () => wrap.classList.add('loaded'), { once: true });
+          img.addEventListener('error', () => wrap.classList.add('loaded'), { once: true });
+        }
+      });
+
+      // 2. Auto-wrap standalone content images (e.g. inside blog articles)
+      document.querySelectorAll('article img, .blog-post img, .editorial-bio-content img').forEach(img => {
+        if (!img.closest('.img-skeleton-wrap') && !img.classList.contains('no-skeleton')) {
+          const wrap = document.createElement('div');
+          wrap.className = 'img-skeleton-wrap';
+          if (img.style.height) wrap.style.height = img.style.height;
+          if (img.style.width) wrap.style.width = img.style.width;
+          if (img.style.marginBottom) wrap.style.marginBottom = img.style.marginBottom;
+          img.parentNode.insertBefore(wrap, img);
+          wrap.appendChild(img);
+
+          if (img.complete && img.naturalWidth > 0) {
+            wrap.classList.add('loaded');
+          } else {
+            img.addEventListener('load', () => wrap.classList.add('loaded'), { once: true });
+            img.addEventListener('error', () => wrap.classList.add('loaded'), { once: true });
+          }
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSkeletonLoaders);
+    } else {
+      initSkeletonLoaders();
     }
   </script>
 </body>

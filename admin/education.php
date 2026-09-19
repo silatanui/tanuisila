@@ -159,10 +159,10 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
                 <?php foreach ($education as $item): ?>
                   <tr>
                     <td><?php echo htmlspecialchars($item['institution']); ?></td>
-                    <td><?php echo htmlspecialchars($item['degree'] ?: '—'); ?></td>
-                    <td><?php echo htmlspecialchars($item['field_name'] ?: '—'); ?></td>
-                    <td><?php echo htmlspecialchars($item['start_year'] ?: '—'); ?> - <?php echo htmlspecialchars($item['end_year'] ?: 'Present'); ?></td>
-                    <td><?php echo nl2br(htmlspecialchars($item['education_details'] ?: $item['description'] ?: '—')); ?></td>
+                    <td><?php echo htmlspecialchars($item['degree'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['field_name'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['start_year'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_year'] ?: 'Present'); ?></td>
+                    <td><?php echo nl2br(htmlspecialchars($item['education_details'] ?: $item['description'] ?: '-')); ?></td>
                     <td>
                       <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
                       <a class="btn danger small" href="?delete=education&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>

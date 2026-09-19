@@ -27,6 +27,10 @@ if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in']) {
     exit;
 }
 
+$adminCount = (int) $pdo->query('SELECT COUNT(*) FROM admin_users')->fetchColumn();
+$canCreateAdmin = $adminCount === 0;
+$setupMessage = $_GET['setup'] ?? '';
+
 $error = '';
 $max_attempts = 5;
 $lockout_time = 15 * 60; // 15 minutes
@@ -49,16 +53,31 @@ if (isset($_SESSION[$lockout_key]) && time() < $_SESSION[$lockout_key]) {
         if ($attempts >= $max_attempts) {
             $_SESSION[$lockout_key] = time() + $lockout_time;
             $error = 'Too many login attempts. Please try again later.';
-        } elseif ($username === ADMIN_USERNAME && $password === ADMIN_PASSWORD) {
+        } else {
+          $isValidLogin = false;
+
+          $stmt = $pdo->prepare('SELECT password_hash FROM admin_users WHERE username = :username AND is_active = 1 LIMIT 1');
+          $stmt->execute([':username' => $username]);
+          $adminUser = $stmt->fetch();
+
+          if ($adminUser && isset($adminUser['password_hash'])) {
+            $isValidLogin = password_verify($password, $adminUser['password_hash']);
+          } elseif ($username === ADMIN_USERNAME && $password === ADMIN_PASSWORD) {
+            // Backward compatibility when DB admin record has not been created yet.
+            $isValidLogin = true;
+          }
+
+          if ($isValidLogin) {
             $_SESSION['admin_logged_in'] = true;
             unset($_SESSION[$attempt_key]);
             unset($_SESSION[$lockout_key]);
             header('Location: index.php');
             exit;
-        } else {
-            $attempts++;
-            $_SESSION[$attempt_key] = $attempts;
-            $error = 'Invalid credentials.';
+          }
+
+          $attempts++;
+          $_SESSION[$attempt_key] = $attempts;
+          $error = 'Invalid credentials.';
         }
     }
 }
@@ -80,15 +99,16 @@ if (empty($_SESSION['csrf_token'])) {
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f3f6fb;
+      --bg: #f8fafc;
       --panel: #ffffff;
-      --panel-alt: #f8fafc;
-      --line: #dfe7f1;
-      --text: #111827;
-      --muted: #5f6f86;
-      --primary: #0f172a;
-      --primary-soft: #e8eefc;
-      --danger: #b42318;
+      --panel-alt: #fafbfc;
+      --line: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #ea580c;
+      --primary-hover: #c2410c;
+      --primary-soft: rgba(234, 88, 12, 0.08);
+      --danger: #dc2626;
       --shadow: rgba(15, 23, 42, 0.08);
     }
 
@@ -261,8 +281,8 @@ if (empty($_SESSION['csrf_token'])) {
     }
 
     input:focus {
-      border-color: var(--text);
-      box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
     }
 
     button {
@@ -273,15 +293,19 @@ if (empty($_SESSION['csrf_token'])) {
       background: var(--primary);
       color: #ffffff;
       font: inherit;
-      font-weight: 600;
-      letter-spacing: 0.01em;
+      font-weight: 700;
+      letter-spacing: 0.02em;
       cursor: pointer;
       border-radius: 0;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
     }
 
     button:hover {
-      opacity: 0.96;
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+      box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
+      transform: translateY(-1px);
     }
 
     button:active {
@@ -306,6 +330,24 @@ if (empty($_SESSION['csrf_token'])) {
       background: #f0f9ff;
       border-left: 3px solid #0284c7;
       border-radius: 2px;
+    }
+
+    .setup-link {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .setup-link a {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.3);
+    }
+
+    .setup-link a:hover {
+      opacity: 0.82;
     }
 
     @media (max-width: 840px) {
@@ -345,6 +387,10 @@ if (empty($_SESSION['csrf_token'])) {
           <p>Sign in to continue to the dashboard.</p>
         </div>
 
+        <?php if ($setupMessage === 'done'): ?>
+          <div class="security-info">Admin signup is closed because an admin account already exists. Please sign in.</div>
+        <?php endif; ?>
+
         <?php if (!empty($error)): ?>
           <div class="error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
@@ -364,6 +410,10 @@ if (empty($_SESSION['csrf_token'])) {
 
           <button type="submit">Sign In</button>
         </form>
+
+        <?php if ($canCreateAdmin): ?>
+          <p class="setup-link">No admin account yet? <a href="signup.php">Create Account</a></p>
+        <?php endif; ?>
       </div>
     </main>
   </div>
