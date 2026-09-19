@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/BlogAIHelper.php';
 // Check authorization
 if (empty($_SESSION['admin_logged_in'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     exit;
 }
 
@@ -14,68 +14,75 @@ header('Content-Type: application/json');
 
 try {
     $action = $_POST['action'] ?? $_GET['action'] ?? '';
-    $title = $_POST['title'] ?? '';
-    $content = $_POST['content'] ?? '';
-    $category = $_POST['category'] ?? '';
+    $title = trim($_POST['title'] ?? '');
+    $content = trim($_POST['content'] ?? '');
+    $category = trim($_POST['category'] ?? '');
 
     if (empty($action)) {
-        throw new Exception('No action specified');
+        throw new Exception('No action specified.');
+    }
+
+    if (empty($content)) {
+        throw new Exception('Please enter or paste your blog content first into the editor.');
     }
 
     $aiHelper = new BlogAIHelper(OPENAI_API_KEY);
-
     $response = [];
 
     switch ($action) {
-        case 'analyze_content':
-            if (empty($content)) {
-                throw new Exception('Content is required');
-            }
-            $response = $aiHelper->analyzeContent($content);
+        case 'auto_generate_all':
+        case 'generate_all_from_content':
+            $response = $aiHelper->generateAllFromContent($content, $title, $category);
+            break;
+
+        case 'generate_title':
+            $generatedTitle = $aiHelper->generateTitle($content);
+            $generatedSlug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $generatedTitle));
+            $generatedSlug = trim($generatedSlug, '-');
+            $response['title'] = $generatedTitle;
+            $response['slug'] = $generatedSlug;
+            break;
+
+        case 'generate_category':
+            $response['category'] = $aiHelper->generateCategory($content, $title);
             break;
 
         case 'generate_excerpt':
-            if (empty($title) || empty($content)) {
-                throw new Exception('Title and content are required');
-            }
             $response['excerpt'] = $aiHelper->generateExcerpt($title, $content);
             break;
 
         case 'generate_seo_title':
-            if (empty($title) || empty($content)) {
-                throw new Exception('Title and content are required');
-            }
             $response['seo_title'] = $aiHelper->generateSEOTitle($title, $content);
             break;
 
         case 'generate_seo_description':
-            if (empty($title) || empty($content)) {
-                throw new Exception('Title and content are required');
-            }
             $response['seo_description'] = $aiHelper->generateSEODescription($title, $content);
             break;
 
         case 'generate_tags':
-            if (empty($title) || empty($content)) {
-                throw new Exception('Title and content are required');
-            }
             $response['tags'] = $aiHelper->generateTags($title, $content, $category);
+            break;
+
+        case 'analyze_content':
+            $response = $aiHelper->analyzeContent($content);
             break;
 
         case 'full_optimization':
-            if (empty($title) || empty($content)) {
-                throw new Exception('Title and content are required');
+            if (empty($title)) {
+                $response = $aiHelper->generateAllFromContent($content, '', $category);
+            } else {
+                $response['excerpt'] = $aiHelper->generateExcerpt($title, $content);
+                $response['seo_title'] = $aiHelper->generateSEOTitle($title, $content);
+                $response['seo_description'] = $aiHelper->generateSEODescription($title, $content);
+                $response['tags'] = $aiHelper->generateTags($title, $content, $category);
+                $analysis = $aiHelper->analyzeContent($content);
+                $response['analysis'] = $analysis;
+                $response['reading_time'] = $analysis['reading_time'];
             }
-            // Run all AI operations
-            $response['excerpt'] = $aiHelper->generateExcerpt($title, $content);
-            $response['seo_title'] = $aiHelper->generateSEOTitle($title, $content);
-            $response['seo_description'] = $aiHelper->generateSEODescription($title, $content);
-            $response['tags'] = $aiHelper->generateTags($title, $content, $category);
-            $response['analysis'] = $aiHelper->analyzeContent($content);
             break;
 
         default:
-            throw new Exception('Unknown action: ' . $action);
+            throw new Exception('Unknown AI action: ' . $action);
     }
 
     echo json_encode(['success' => true, 'data' => $response]);
@@ -84,4 +91,4 @@ try {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
-?>
+
