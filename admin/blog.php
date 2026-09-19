@@ -269,7 +269,7 @@ $posts = $pdo->query('
                   </button>
                 </div>
               </div>
-              <textarea id="blog-content-editor" name="content" required placeholder="Write or paste your full article here..."><?php echo htmlspecialchars($editingPost['content'] ?? ''); ?></textarea>
+              <textarea id="blog-content-editor" name="content" placeholder="Write or paste your full article here..."><?php echo htmlspecialchars($editingPost['content'] ?? ''); ?></textarea>
             </div>
 
             <!-- 2. Title & Slug -->
@@ -901,9 +901,35 @@ $posts = $pdo->query('
         }
       `,
       setup: function(editor) {
-        editor.on('change', function() {
+        editor.on('init change input keyup blur NodeChange SetContent', function() {
           tinymce.triggerSave();
         });
+      }
+    });
+
+    // Explicit Form Submission Validation & Sync
+    document.getElementById('blog-form').addEventListener('submit', function(e) {
+      if (typeof tinymce !== 'undefined') {
+        tinymce.triggerSave();
+      }
+      
+      const title = document.getElementById('field-title').value.trim();
+      const content = document.getElementById('blog-content-editor').value.trim();
+
+      if (!title) {
+        e.preventDefault();
+        alert('Please enter a title for the blog post.');
+        document.getElementById('field-title').focus();
+        return false;
+      }
+
+      if (!content || content.replace(/<[^>]*>/g, '').trim().length === 0) {
+        e.preventDefault();
+        alert('Please write or paste your article content before saving.');
+        if (typeof tinymce !== 'undefined' && tinymce.get('blog-content-editor')) {
+          tinymce.get('blog-content-editor').focus();
+        }
+        return false;
       }
     });
   </script>
