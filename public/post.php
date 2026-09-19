@@ -125,24 +125,26 @@ require_once __DIR__ . '/header.php';
   }
 
   /* ═══════════════════════════════════════════════════════════ */
-  /* EXPANDED SPACIOUS BLOG READING LAYOUT                      */
+  /* FLUID BLOG READING LAYOUT (MAINTAINS SITE CONTAINER)       */
   /* ═══════════════════════════════════════════════════════════ */
   .container.post-page-container {
-    max-width: 1480px !important;
-    padding: 0 40px;
+    max-width: 1320px; /* Aligned with standard site container */
+    padding: 0 clamp(20px, 4vw, 50px);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   #blog-post.section-row {
-    display: block !important; /* Remove the 240px left-column constraint for max reading room */
-    padding: 30px 0 60px 0;
+    display: block !important; /* Full width inside container without left column squeeze */
+    padding: 36px 0 60px 0;
   }
 
   .post-top-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 24px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -157,11 +159,11 @@ require_once __DIR__ . '/header.php';
     color: var(--accent);
   }
 
-  /* Two-column Layout: Wide Article on Left, More Articles Sidebar on Right */
+  /* Two-column Layout: Article on Left, More Articles Sidebar on Right */
   .post-layout-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 48px;
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 36px;
     align-items: start;
   }
 
@@ -171,7 +173,7 @@ require_once __DIR__ . '/header.php';
 
   .post-sidebar-col {
     position: relative;
-    width: 320px;
+    width: 290px;
   }
 
   .post-sidebar-sticky {
@@ -179,16 +181,13 @@ require_once __DIR__ . '/header.php';
     top: 90px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
   }
 
-  @media (max-width: 1100px) {
-    .container.post-page-container {
-      padding: 0 20px;
-    }
+  @media (max-width: 1024px) {
     .post-layout-grid {
       grid-template-columns: 1fr;
-      gap: 40px;
+      gap: 36px;
     }
     .post-sidebar-col {
       width: 100%;
