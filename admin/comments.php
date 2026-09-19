@@ -318,9 +318,15 @@ if ($filterPostId > 0) {
                         </span>
                       </div>
                       <div style="margin-top: 4px; font-size: 0.84rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                        <a href="mailto:<?php echo htmlspecialchars($comm['author_email']); ?>" style="color: var(--primary); text-decoration: underline;">
-                          <i class="fa-solid fa-envelope" style="margin-right: 4px;"></i><?php echo htmlspecialchars($comm['author_email']); ?>
-                        </a>
+                        <?php if (!empty($comm['author_email'])): ?>
+                          <a href="mailto:<?php echo htmlspecialchars($comm['author_email']); ?>" style="color: var(--primary); text-decoration: underline;">
+                            <i class="fa-solid fa-envelope" style="margin-right: 4px;"></i><?php echo htmlspecialchars($comm['author_email']); ?>
+                          </a>
+                        <?php else: ?>
+                          <span style="color: var(--muted); font-style: italic;">
+                            <i class="fa-solid fa-user-secret" style="margin-right: 4px;"></i>No email provided (Anonymous)
+                          </span>
+                        <?php endif; ?>
                         <span>•</span>
                         <span>
                           <i class="fa-regular fa-clock" style="margin-right: 4px;"></i><?php echo $createdFormatted; ?>

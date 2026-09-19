@@ -49,16 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'post_
             // Silently reject bot submission
             $commentFeedback = 'Your comment has been submitted.';
             $commentFeedbackType = 'success';
-        } elseif (empty($formAuthorName) || empty($formAuthorEmail) || empty($formCommentText)) {
-            $commentFeedback = 'Please complete all required fields (Name, Email, and Comment).';
+        } elseif (empty($formCommentText)) {
+            $commentFeedback = 'Please enter your comment message.';
             $commentFeedbackType = 'error';
-        } elseif (!filter_var($formAuthorEmail, FILTER_VALIDATE_EMAIL)) {
-            $commentFeedback = 'Please provide a valid email address.';
+        } elseif (!empty($formAuthorEmail) && !filter_var($formAuthorEmail, FILTER_VALIDATE_EMAIL)) {
+            $commentFeedback = 'Please provide a valid email address or leave the email field blank.';
             $commentFeedbackType = 'error';
         } else {
             try {
+                // If author name is empty, default to 'Anonymous'
+                $finalAuthorName = $formAuthorName !== '' ? $formAuthorName : 'Anonymous';
+                $finalAuthorEmail = $formAuthorEmail;
+
                 $insertStmt = $pdo->prepare('INSERT INTO blog_comments (post_id, author_name, author_email, comment_text, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
-                $insertStmt->execute([$post['id'], $formAuthorName, $formAuthorEmail, $formCommentText, 'approved']);
+                $insertStmt->execute([$post['id'], $finalAuthorName, $finalAuthorEmail, $formCommentText, 'approved']);
                 
                 $commentFeedback = 'Thank you! Your comment has been posted successfully.';
                 $commentFeedbackType = 'success';
@@ -233,7 +237,7 @@ require_once __DIR__ . '/header.php';
                 Leave a Comment
               </h4>
               <p style="margin: 0; color: var(--muted); font-size: 0.88rem;">
-                Your email address will not be published publicly. Required fields are marked with an asterisk (*).
+                Your email address will not be published publicly. Name and email are optional (leave blank to comment anonymously).
               </p>
             </div>
 
@@ -249,14 +253,13 @@ require_once __DIR__ . '/header.php';
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
                 <div>
                   <label for="author_name" style="display: block; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px;">
-                    <i class="fa-solid fa-user" style="color: var(--accent); margin-right: 4px;"></i> Your Name *
+                    <i class="fa-solid fa-user" style="color: var(--accent); margin-right: 4px;"></i> Your Name <span style="font-weight: normal; text-transform: none; color: var(--muted);">(Optional)</span>
                   </label>
                   <input 
                     type="text" 
                     id="author_name" 
                     name="author_name" 
-                    required 
-                    placeholder="e.g. Alex Doe" 
+                    placeholder="e.g. Alex Doe (or leave blank for Anonymous)" 
                     value="<?php echo htmlspecialchars($formAuthorName); ?>" 
                     style="width: 100%; padding: 12px 14px; background: #ffffff; border: 1px solid var(--light-gray); color: var(--text); outline: none; font-size: 0.92rem; box-sizing: border-box;"
                   >
@@ -264,14 +267,13 @@ require_once __DIR__ . '/header.php';
 
                 <div>
                   <label for="author_email" style="display: block; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px;">
-                    <i class="fa-solid fa-envelope" style="color: var(--accent); margin-right: 4px;"></i> Email Address *
+                    <i class="fa-solid fa-envelope" style="color: var(--accent); margin-right: 4px;"></i> Email Address <span style="font-weight: normal; text-transform: none; color: var(--muted);">(Optional)</span>
                   </label>
                   <input 
                     type="email" 
                     id="author_email" 
                     name="author_email" 
-                    required 
-                    placeholder="e.g. alex@example.com" 
+                    placeholder="e.g. alex@example.com (optional)" 
                     value="<?php echo htmlspecialchars($formAuthorEmail); ?>" 
                     style="width: 100%; padding: 12px 14px; background: #ffffff; border: 1px solid var(--light-gray); color: var(--text); outline: none; font-size: 0.92rem; box-sizing: border-box;"
                   >

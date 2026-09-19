@@ -178,8 +178,8 @@ function ensurePortfolioSchema(PDO $pdo): void {
         CREATE TABLE IF NOT EXISTS `blog_comments` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `post_id` INT UNSIGNED NOT NULL,
-            `author_name` VARCHAR(150) NOT NULL,
-            `author_email` VARCHAR(255) NOT NULL,
+            `author_name` VARCHAR(150) NOT NULL DEFAULT 'Anonymous',
+            `author_email` VARCHAR(255) DEFAULT '',
             `comment_text` TEXT NOT NULL,
             `status` ENUM('approved', 'pending', 'spam') NOT NULL DEFAULT 'approved',
             `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -187,6 +187,10 @@ function ensurePortfolioSchema(PDO $pdo): void {
             INDEX `idx_comment_created_at` (`created_at`)
         )
     ");
+    try {
+        $pdo->exec("ALTER TABLE `blog_comments` MODIFY COLUMN `author_name` VARCHAR(150) NOT NULL DEFAULT 'Anonymous'");
+        $pdo->exec("ALTER TABLE `blog_comments` MODIFY COLUMN `author_email` VARCHAR(255) DEFAULT ''");
+    } catch (Throwable $e) {}
     ensureColumnExists($pdo, 'blog_comments', 'status', "ENUM('approved', 'pending', 'spam') NOT NULL DEFAULT 'approved'");
     ensureColumnExists($pdo, 'blog_comments', 'created_at', "DATETIME DEFAULT CURRENT_TIMESTAMP");
 
