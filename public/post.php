@@ -124,10 +124,43 @@ require_once __DIR__ . '/header.php';
     font-weight: 400 !important;
   }
 
-  /* Two-column Layout: Article on Left, More Articles Sidebar on Right */
+  /* ═══════════════════════════════════════════════════════════ */
+  /* EXPANDED SPACIOUS BLOG READING LAYOUT                      */
+  /* ═══════════════════════════════════════════════════════════ */
+  .container.post-page-container {
+    max-width: 1480px !important;
+    padding: 0 40px;
+  }
+
+  #blog-post.section-row {
+    display: block !important; /* Remove the 240px left-column constraint for max reading room */
+    padding: 30px 0 60px 0;
+  }
+
+  .post-top-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .post-top-breadcrumb a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .post-top-breadcrumb a:hover {
+    color: var(--accent);
+  }
+
+  /* Two-column Layout: Wide Article on Left, More Articles Sidebar on Right */
   .post-layout-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 350px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     gap: 48px;
     align-items: start;
   }
@@ -138,6 +171,7 @@ require_once __DIR__ . '/header.php';
 
   .post-sidebar-col {
     position: relative;
+    width: 320px;
   }
 
   .post-sidebar-sticky {
@@ -148,10 +182,16 @@ require_once __DIR__ . '/header.php';
     gap: 24px;
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1100px) {
+    .container.post-page-container {
+      padding: 0 20px;
+    }
     .post-layout-grid {
       grid-template-columns: 1fr;
       gap: 40px;
+    }
+    .post-sidebar-col {
+      width: 100%;
     }
     .post-sidebar-sticky {
       position: static;
@@ -162,8 +202,8 @@ require_once __DIR__ . '/header.php';
   .blog-article-content {
     max-width: 100%;
     margin-bottom: 40px;
-    font-size: 1.06rem;
-    line-height: 1.82;
+    font-size: 1.08rem;
+    line-height: 1.85;
     color: var(--text, #0f172a);
     word-break: break-word;
   }
@@ -177,22 +217,22 @@ require_once __DIR__ . '/header.php';
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     font-weight: 800;
     color: var(--text, #0f172a);
-    margin-top: 2rem;
-    margin-bottom: 0.8rem;
+    margin-top: 2.2rem;
+    margin-bottom: 0.85rem;
     line-height: 1.28;
     letter-spacing: -0.02em;
   }
 
-  .blog-article-content h1 { font-size: 1.9rem; }
-  .blog-article-content h2 { font-size: 1.55rem; }
-  .blog-article-content h3 { font-size: 1.3rem; }
-  .blog-article-content h4 { font-size: 1.15rem; }
+  .blog-article-content h1 { font-size: 2rem; }
+  .blog-article-content h2 { font-size: 1.65rem; }
+  .blog-article-content h3 { font-size: 1.35rem; }
+  .blog-article-content h4 { font-size: 1.18rem; }
 
   .blog-article-content p {
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    margin-bottom: 1.4rem;
-    font-size: 1.06rem;
-    line-height: 1.82;
+    margin-bottom: 1.5rem;
+    font-size: 1.08rem;
+    line-height: 1.85;
     color: #1e293b;
   }
 
@@ -417,10 +457,18 @@ require_once __DIR__ . '/header.php';
   }
 </style>
 
-<main class="container">
+<main class="container post-page-container">
   <section id="blog-post" class="section-row" style="border-bottom: none;">
-    <div class="section-label">Blog</div>
-    <div class="section-content">
+    <div class="section-content" style="width: 100%;">
+
+      <!-- Top Breadcrumb Bar -->
+      <div class="post-top-breadcrumb">
+        <a href="<?php echo appUrl('public/index.php'); ?>"><i class="fa-solid fa-house"></i> Home</a>
+        <span>/</span>
+        <a href="blog.php">Blog</a>
+        <span>/</span>
+        <span style="color: var(--accent);"><?php echo htmlspecialchars($post['category'] ?: 'Article'); ?></span>
+      </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
       <!-- 2-COLUMN GRID: MAIN ARTICLE (LEFT) & SIDEBAR (RIGHT)    -->
@@ -432,7 +480,7 @@ require_once __DIR__ . '/header.php';
           
           <!-- Featured Image -->
           <?php if (!empty($post['featured_image'])): ?>
-            <div class="img-skeleton-wrap" style="width: 100%; height: 400px; margin-bottom: 32px;">
+            <div class="img-skeleton-wrap" style="width: 100%; height: 440px; margin-bottom: 32px;">
               <img 
                 src="<?php echo htmlspecialchars(portfolioAssetUrl($post['featured_image'])); ?>" 
                 alt="<?php echo htmlspecialchars($post['title']); ?>" 
