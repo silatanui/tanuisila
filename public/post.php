@@ -455,6 +455,76 @@ require_once __DIR__ . '/header.php';
     font-size: 0.74rem;
     color: var(--muted);
   }
+
+  .post-featured-image {
+    width: 100%;
+    height: clamp(180px, 48vw, 360px);
+    margin-bottom: 30px;
+  }
+
+  .post-page-title {
+    margin: 0 0 20px 0;
+    font-size: clamp(1.55rem, 5vw, 2.2rem);
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .post-top-breadcrumb {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .blog-article-content {
+    overflow-wrap: anywhere;
+  }
+
+  .blog-article-content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .comment-form-card {
+    padding: 28px;
+    background: var(--soft-bg);
+    border: 1px solid var(--light-gray);
+  }
+
+  @media (max-width: 640px) {
+    #blog-post.section-row {
+      padding: 20px 0 40px 0;
+    }
+
+    .post-featured-image {
+      margin-bottom: 20px;
+    }
+
+    .blog-article-content,
+    .blog-article-content p {
+      font-size: 1rem;
+      line-height: 1.75;
+    }
+
+    .blog-article-content h2 { font-size: 1.35rem; }
+    .blog-article-content h3 { font-size: 1.18rem; }
+
+    .comment-form-card {
+      padding: 18px;
+    }
+
+    .sidebar-article-card {
+      gap: 10px;
+    }
+
+    .sidebar-article-img-link {
+      width: 72px;
+      height: 64px;
+    }
+  }
 </style>
 
 <main class="container post-page-container">
@@ -480,7 +550,7 @@ require_once __DIR__ . '/header.php';
           
           <!-- Featured Image -->
           <?php if (!empty($post['featured_image'])): ?>
-            <div class="img-skeleton-wrap" style="width: 100%; height: 360px; margin-bottom: 30px;">
+            <div class="img-skeleton-wrap post-featured-image">
               <img 
                 src="<?php echo htmlspecialchars(portfolioAssetUrl($post['featured_image'])); ?>" 
                 alt="<?php echo htmlspecialchars($post['title']); ?>" 
@@ -510,7 +580,7 @@ require_once __DIR__ . '/header.php';
               <?php endif; ?>
             </div>
             
-            <h1 style="margin: 0 0 20px 0; font-size: 2.2rem; line-height: 1.2; letter-spacing: -0.03em; color: var(--text);">
+            <h1 class="post-page-title">
               <?php echo htmlspecialchars($post['title']); ?>
             </h1>
             
@@ -617,7 +687,7 @@ require_once __DIR__ . '/header.php';
 
             <!-- Comment Form or Closed Notice -->
             <?php if (!empty($post['allow_comments'])): ?>
-              <div id="comment-form" style="padding: 28px; background: var(--soft-bg); border: 1px solid var(--light-gray);">
+              <div id="comment-form" class="comment-form-card">
                 <div style="margin-bottom: 20px;">
                   <h4 style="margin: 0 0 6px 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text);">
                     Leave a Comment

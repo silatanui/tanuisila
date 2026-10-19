@@ -450,14 +450,30 @@ if (!isset($activePage)) {
       .sh__nav { gap: 0; }
       .sh__nav-link { padding: 6px 7px; font-size: 0.72rem; gap: 4px; }
       .sh__contact-btn { padding: 8px 14px; font-size: 0.72rem; }
+      .tb__item .tb__label { display: none; }
+      .tb__item { padding: 0 14px; }
     }
     @media (max-width: 990px) {
       .sh__nav    { display: none; }
       .sh__actions { display: none; }
       .sh__toggle { display: flex; }
-    }
-    @media (max-width: 640px) {
+      /* Align with hamburger: contact lives in the drawer below this width */
       .tb { display: none; }
+      .sh__inner { min-height: 64px; gap: 12px; }
+      .sh__brand { min-width: 0; }
+      .sh__brand-text { min-width: 0; overflow: hidden; }
+      .sh__name {
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: min(52vw, 220px);
+      }
+    }
+    @media (max-width: 420px) {
+      .sh__logo { width: 36px; height: 36px; }
+      .sh__name { font-size: 0.92rem; max-width: 46vw; }
+      .sh__role { display: none; }
     }
   </style>
   <script>
@@ -486,11 +502,11 @@ if (!isset($activePage)) {
         </div>
         <a class="tb__item" href="mailto:silatanuikipngetich@gmail.com" title="Send email">
           <i class="fa-solid fa-envelope"></i>
-          silatanuikipngetich@gmail.com
+          <span class="tb__label">silatanuikipngetich@gmail.com</span>
         </a>
         <a class="tb__item" href="https://wa.me/254742178644" target="_blank" rel="noopener noreferrer" title="Chat on WhatsApp">
           <i class="fa-brands fa-whatsapp"></i>
-          +254 742 178 644
+          <span class="tb__label">+254 742 178 644</span>
         </a>
       </div>
 

@@ -220,6 +220,22 @@ require_once __DIR__ . '/header.php';
     gap: 16px !important;
   }
 }
+
+@media (max-width: 640px) {
+  .featured-project-card {
+    padding: 16px !important;
+  }
+
+  .pipeline-announcement-card {
+    padding: 20px !important;
+  }
+
+  .pipeline-announcement-card .btn {
+    width: 100%;
+    text-align: center;
+    white-space: normal !important;
+  }
+}
 </style>
 
 <?php
