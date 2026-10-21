@@ -2,4 +2,5 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/ipusgkqs/public_html/
-    - /bin/cp -R * $DEPLOYPATH
+    - /bin/cp -Rfv index.php about.php blog.php contact.php education.php experience.php privacy.php projects.php research.php skills.php post.php .htaccess $DEPLOYPATH
+    - /bin/cp -Rfv admin assets config database includes public $DEPLOYPATH
