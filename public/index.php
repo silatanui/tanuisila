@@ -298,6 +298,24 @@ try {
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- NEWSLETTER / UPDATES CTA                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="hp-about" style="padding:48px 0;border-bottom:1px solid var(--light-gray);">
+  <div class="container" style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:28px;align-items:center;">
+    <div>
+      <div class="hp-section-label"><span class="hp-section-label__text">Updates</span></div>
+      <h2 class="hp-about__heading" style="margin-bottom:10px;">Stay in the loop</h2>
+      <p style="margin:0;color:var(--muted);max-width:520px;line-height:1.5;">Follow new essays via RSS, or jump to Contact for collaborations. No spam — just signal.</p>
+    </div>
+    <div class="tool-actions" style="justify-content:flex-end;">
+      <a class="btn primary" href="<?php echo appUrl('feed.php'); ?>"><i class="fa-solid fa-rss"></i> RSS feed</a>
+      <a class="btn" href="<?php echo appUrl('guestbook.php'); ?>">Guestbook</a>
+      <a class="btn" href="<?php echo appUrl('changelog.php'); ?>">Changelog</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
 <!-- CONTACT STRIP CTA                                          -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="hp-cta-strip">
