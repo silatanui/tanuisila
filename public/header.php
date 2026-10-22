@@ -148,6 +148,7 @@ if (!isset($activePage)) {
   <meta name="theme-color" content="#ffffff">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?php echo appUrl('assets/css/styles.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/styles.css'); ?>">
+  <link rel="stylesheet" href="<?php echo appUrl('assets/css/extras.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/extras.css'); ?>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" crossorigin="anonymous">
   <style>
     /* ═══════════════════════════════════════════════════════
@@ -512,6 +513,7 @@ if (!isset($activePage)) {
   </script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
 
   <!-- ═══════════════════════ TOPBAR ═══════════════════════ -->
   <div class="tb" role="banner">
