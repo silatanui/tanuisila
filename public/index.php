@@ -24,118 +24,93 @@ try {
 ?>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- HERO - FULL VIEWPORT EDITORIAL LAYOUT                      -->
+<!-- HERO - BRAND-FIRST COMPOSITION                             -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="hp-hero">
   <div class="hp-hero__bg-grid" aria-hidden="true"></div>
 
-  <div class="container hp-hero__inner">
+  <div class="hp-hero__plane">
+    <div class="container hp-hero__inner">
 
-    <!-- LEFT: Text content -->
-    <div class="hp-hero__copy">
+      <div class="hp-hero__copy">
+        <p class="hp-hero__role reveal-on-enter">Computer Scientist</p>
 
-      <div class="hp-hero__eyebrow">
-        <span class="hp-eyebrow-dot"></span>
-        <span><?php echo htmlspecialchars($profile['full_name']); ?></span>
-        <span class="hp-eyebrow-sep">·</span>
-        <span>Computer Scientist</span>
+        <h1 class="hp-hero__brand">
+          <span class="hp-brand-line"><?php echo htmlspecialchars($profile['full_name']); ?></span>
+        </h1>
+
+        <p class="hp-hero__tagline">Building technology with purpose.</p>
+
+        <p class="hp-hero__sub">
+          <?php echo htmlspecialchars(
+            $settings['hero_text']
+            ?: $profile['summary']
+            ?: 'Curious about AI, research, and the many ways technology can be put to good use.'
+          ); ?>
+        </p>
+
+        <div class="hp-hero__ctas">
+          <a class="hp-cta hp-cta--primary" href="<?php echo appUrl('public/projects.php'); ?>">
+            View Projects <span class="hp-cta-arrow">→</span>
+          </a>
+          <a class="hp-cta hp-cta--secondary" href="<?php echo appUrl('public/contact.php'); ?>">
+            Get in Touch
+          </a>
+        </div>
       </div>
 
-      <h1 class="hp-hero__headline">
-        <span class="hp-headline-line hp-line-1">Building</span>
-        <span class="hp-headline-line hp-line-2">technology</span>
-        <span class="hp-headline-line hp-line-3 hp-accent-line">with purpose.</span>
-      </h1>
-
-      <p class="hp-hero__sub">
-        <?php echo htmlspecialchars(
-          $settings['hero_text']
-          ?: $profile['summary']
-          ?: 'Computer Scientist and software developer, curious about AI, research, and the many ways technology can be put to good use.'
-        ); ?>
-      </p>
-
-      <!-- Role chips -->
-      <div class="hp-role-chips" role="list">
-        <span class="hp-chip" role="listitem">Software Development</span>
-        <span class="hp-chip" role="listitem">Artificial Intelligence</span>
-        <span class="hp-chip" role="listitem">System Architecture</span>
-        <span class="hp-chip" role="listitem">Technology Innovation</span>
+      <div class="hp-hero__visual" aria-hidden="false">
+        <div class="hp-photo-frame" id="hero-photo-wrap">
+          <div class="hp-photo-inner img-skeleton-wrap" id="hero-photo-skeleton">
+            <picture>
+              <source srcset="<?php echo appUrl('public/profile.webp'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.webp'); ?>" type="image/webp">
+              <img
+                src="<?php echo appUrl('public/profile.jpg'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.jpg'); ?>"
+                alt="<?php echo htmlspecialchars($profile['full_name']); ?>"
+                class="hp-photo"
+                fetchpriority="high"
+                decoding="async"
+                width="520"
+                height="640"
+                onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
+              >
+            </picture>
+          </div>
+        </div>
       </div>
 
-      <!-- CTAs -->
-      <div class="hp-hero__ctas">
-        <a class="hp-cta hp-cta--primary" href="<?php echo appUrl('public/projects.php'); ?>">
-          View Projects <span class="hp-cta-arrow">→</span>
-        </a>
-        <a class="hp-cta hp-cta--secondary" href="<?php echo appUrl('public/skills.php'); ?>">
-          Explore Skills
-        </a>
-        <?php if (!empty($profile['github'])): ?>
-        <a class="hp-cta hp-cta--ghost" href="<?php echo htmlspecialchars($profile['github']); ?>" target="_blank" rel="noopener noreferrer" aria-label="GitHub Profile">
-          <i class="fa-brands fa-github"></i> GitHub
-        </a>
-        <?php endif; ?>
-        <?php if (!empty($profile['linkedin'])): ?>
-        <a class="hp-cta hp-cta--ghost" href="<?php echo htmlspecialchars($profile['linkedin']); ?>" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn Profile">
-          <i class="fa-brands fa-linkedin"></i> LinkedIn
-        </a>
-        <?php endif; ?>
-      </div>
     </div>
-
-    <!-- RIGHT: Photo + stat cards -->
-    <div class="hp-hero__visual">
-      <div class="hp-photo-frame" id="hero-photo-wrap">
-        <div class="hp-photo-inner img-skeleton-wrap" id="hero-photo-skeleton">
-          <picture>
-            <source srcset="<?php echo appUrl('public/profile.webp'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.webp'); ?>" type="image/webp">
-            <img
-              src="<?php echo appUrl('public/profile.jpg'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.jpg'); ?>"
-              alt="<?php echo htmlspecialchars($profile['full_name']); ?>"
-              class="hp-photo"
-              fetchpriority="high"
-              decoding="async"
-              width="380"
-              height="480"
-              onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
-            >
-          </picture>
-        </div>
-        <!-- Floating accent badge -->
-        <div class="hp-photo-badge hp-photo-badge--tl">
-          <i class="fa-solid fa-code"></i>
-          <span>CS Graduate</span>
-        </div>
-        <div class="hp-photo-badge hp-photo-badge--br">
-          <i class="fa-solid fa-graduation-cap"></i>
-          <span>MSc · Debrecen</span>
-        </div>
-      </div>
-
-      <!-- Stats row -->
-      <div class="hp-stats-row">
-        <div class="hp-stat">
-          <span class="hp-stat__num" data-target="<?php echo max($totalProjects, 1); ?>"><?php echo max($totalProjects, 1); ?>+</span>
-          <span class="hp-stat__label">Projects</span>
-        </div>
-        <div class="hp-stat">
-          <span class="hp-stat__num" data-target="<?php echo max($totalPublications, 3); ?>"><?php echo max($totalPublications, 3); ?>+</span>
-          <span class="hp-stat__label">Publications</span>
-        </div>
-        <div class="hp-stat">
-          <span class="hp-stat__num" data-target="5">5+</span>
-          <span class="hp-stat__label">Yrs Experience</span>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <!-- Scroll indicator -->
   <div class="hp-scroll-indicator" aria-hidden="true">
     <span>Scroll</span>
     <span class="hp-scroll-line"></span>
+  </div>
+</section>
+
+<!-- Focus strip: chips + stats below the first viewport -->
+<section class="hp-focus-strip reveal-on-enter" aria-label="Focus areas and highlights">
+  <div class="container hp-focus-strip__inner">
+    <div class="hp-role-chips" role="list">
+      <span class="hp-chip" role="listitem">Software Development</span>
+      <span class="hp-chip" role="listitem">Artificial Intelligence</span>
+      <span class="hp-chip" role="listitem">System Architecture</span>
+      <span class="hp-chip" role="listitem">Technology Innovation</span>
+    </div>
+    <div class="hp-stats-row">
+      <div class="hp-stat">
+        <span class="hp-stat__num"><?php echo max($totalProjects, 1); ?>+</span>
+        <span class="hp-stat__label">Projects</span>
+      </div>
+      <div class="hp-stat">
+        <span class="hp-stat__num"><?php echo max($totalPublications, 3); ?>+</span>
+        <span class="hp-stat__label">Publications</span>
+      </div>
+      <div class="hp-stat">
+        <span class="hp-stat__num">5+</span>
+        <span class="hp-stat__label">Yrs Experience</span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -312,7 +287,10 @@ try {
 /* ── HERO ───────────────────────────────────────────────── */
 .hp-hero {
   position: relative;
-  padding: 80px 0 60px;
+  min-height: calc(100vh - 116px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--light-gray);
 }
@@ -328,121 +306,119 @@ try {
   opacity: 0.6;
 }
 
-.hp-hero__inner {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 60px;
-  align-items: center;
+.hp-hero__plane {
   position: relative;
   z-index: 1;
+  padding: 56px 0 48px;
 }
 
-/* Eyebrow */
-.hp-hero__eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-muted);
-  margin-bottom: 4px;
+.hp-hero__inner {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 48px;
+  align-items: stretch;
+  min-height: min(68vh, 640px);
 }
 
-.hp-eyebrow-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  display: inline-block;
-  animation: hp-pulse 2s ease-in-out infinite;
-}
-
-@keyframes hp-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.7); }
-}
-
-.hp-eyebrow-sep { opacity: 0.4; }
-
-/* Headline */
 .hp-hero__copy {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  justify-content: center;
+  gap: 16px;
+  max-width: 640px;
 }
 
-.hp-hero__headline {
+.hp-hero__role {
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  font-size: clamp(3rem, 5.5vw, 5.2rem);
-  line-height: 0.9;
-  letter-spacing: -0.06em;
+  font-size: var(--text-meta, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-muted);
+}
+
+.hp-hero__brand {
+  margin: 0;
+  font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+  line-height: 0.94;
+  letter-spacing: -0.055em;
   font-weight: 800;
   color: var(--text);
 }
 
-.hp-headline-line {
+.hp-brand-line {
   display: block;
   opacity: 0;
-  transform: translateY(24px);
-  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateY(20px);
+  animation: hp-slide-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
 }
 
-.hp-line-1 { animation-delay: 0.05s; }
-.hp-line-2 { animation-delay: 0.2s; }
-.hp-line-3 { animation-delay: 0.35s; }
-
-.hp-accent-line {
+.hp-hero__tagline {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
   color: var(--accent);
-  font-style: italic;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
 }
 
 @keyframes hp-slide-up {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Sub text */
 .hp-hero__sub {
   margin: 0;
-  max-width: 580px;
+  max-width: 520px;
   color: var(--muted);
-  font-size: 1.1rem;
-  line-height: 1.5;
+  font-size: var(--text-body, 1.05rem);
+  line-height: 1.55;
   opacity: 0;
-  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
 }
 
-/* Role chips */
 .hp-role-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  opacity: 0;
-  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.65s forwards;
 }
 
 .hp-chip {
   display: inline-block;
   padding: 5px 12px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-muted);
-  border: 1px solid rgba(234,88,12,0.3);
-  background: rgba(234,88,12,0.06);
+  border: 1px solid rgba(234,88,12,0.28);
+  background: rgba(234,88,12,0.05);
 }
 
-/* CTA buttons */
 .hp-hero__ctas {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+  margin-top: 6px;
   opacity: 0;
-  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+  animation: hp-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+}
+
+.hp-focus-strip {
+  border-bottom: 1px solid var(--light-gray);
+  background: var(--soft-bg);
+  padding: 22px 0;
+}
+
+.hp-focus-strip__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
 .hp-cta {
@@ -519,14 +495,14 @@ try {
 
 .hp-cta:hover .hp-cta-arrow { transform: translateX(4px); }
 
-/* ── PHOTO FRAME ───────────────────────────────────────── */
+/* ── PHOTO PLANE ───────────────────────────────────────── */
 .hp-hero__visual {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 20px;
+  align-items: stretch;
+  justify-content: flex-end;
   opacity: 0;
-  animation: hp-fade-in 0.8s ease 0.5s forwards;
+  animation: hp-fade-in 0.85s ease 0.35s forwards;
+  min-width: 0;
 }
 
 @keyframes hp-fade-in {
@@ -536,14 +512,16 @@ try {
 .hp-photo-frame {
   position: relative;
   width: 100%;
-  max-width: 380px;
-  min-height: 480px;
-  overflow: visible !important;
+  max-width: none;
+  height: 100%;
+  min-height: min(68vh, 640px);
+  overflow: hidden;
 }
 
 .hp-photo-inner {
   width: 100%;
-  height: 480px;
+  height: 100%;
+  min-height: inherit;
   border: 1px solid var(--light-gray);
   overflow: hidden;
   position: relative;
@@ -558,11 +536,12 @@ try {
 
 .hp-photo {
   width: 100%;
-  height: 480px;
+  height: 100%;
+  min-height: inherit;
   object-fit: cover;
   object-position: top center;
   display: block;
-  filter: grayscale(5%);
+  filter: grayscale(8%);
   transition: opacity 0.45s ease-out, filter 0.4s ease;
 }
 
@@ -570,54 +549,13 @@ try {
   filter: grayscale(0%);
 }
 
-/* Floating badges on photo */
-.hp-photo-badge {
-  position: absolute;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: #fff;
-  border: 1px solid var(--light-gray);
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.04em;
-  box-shadow: 0 8px 24px rgba(15,23,42,0.12);
-  white-space: nowrap;
-}
-
-.hp-photo-badge i {
-  color: var(--accent);
-  font-size: 0.9rem;
-}
-
-.hp-photo-badge--tl {
-  top: 24px;
-  left: -24px;
-  animation: hp-badge-float 3s ease-in-out infinite;
-}
-
-.hp-photo-badge--br {
-  bottom: 24px;
-  right: -24px;
-  animation: hp-badge-float 3s ease-in-out 1.5s infinite;
-}
-
-@keyframes hp-badge-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
 /* ── STATS ROW ─────────────────────────────────────────── */
 .hp-stats-row {
   display: flex;
   gap: 0;
-  width: 100%;
-  max-width: 380px;
+  min-width: min(100%, 320px);
   border: 1px solid var(--light-gray);
-  background: var(--soft-bg);
+  background: #fff;
 }
 
 .hp-stat {
@@ -1042,50 +980,49 @@ try {
 }
 
 @media (max-width: 860px) {
+  .hp-hero {
+    min-height: 0;
+  }
+
+  .hp-hero__plane {
+    padding: 36px 0 28px;
+  }
+
   .hp-hero__inner {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 28px;
+    min-height: 0;
   }
 
   .hp-hero__visual {
-    align-items: center;
     order: -1;
+    justify-content: stretch;
   }
 
-  .hp-photo-frame {
-    max-width: 320px;
-  }
-
+  .hp-photo-frame,
+  .hp-photo-inner,
   .hp-photo {
-    height: 380px;
-  }
-
-  .hp-photo-badge--tl { left: -8px; }
-  .hp-photo-badge--br { right: -8px; }
-
-  .hp-stats-row {
-    max-width: 320px;
+    min-height: min(52vw, 360px);
+    height: min(52vw, 360px);
   }
 
   .hp-hero__copy {
-    align-items: center;
-    text-align: center;
-  }
-
-  .hp-hero__headline {
-    align-items: center;
+    align-items: flex-start;
+    text-align: left;
+    max-width: none;
   }
 
   .hp-hero__sub {
-    text-align: center;
+    max-width: none;
   }
 
-  .hp-role-chips {
-    justify-content: center;
+  .hp-focus-strip__inner {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .hp-hero__ctas {
-    justify-content: center;
+  .hp-stats-row {
+    width: 100%;
   }
 
   .hp-about__inner {
@@ -1108,8 +1045,6 @@ try {
 }
 
 @media (max-width: 640px) {
-  .hp-hero { padding: 50px 0 40px; }
-
   .hp-cards-grid {
     grid-template-columns: 1fr;
   }
@@ -1117,24 +1052,17 @@ try {
   .hp-card { border-right: none; border-bottom: 1px solid var(--light-gray); }
   .hp-card:last-child { border-bottom: none; }
 
-  .hp-quicknav__inner {
-    gap: 0;
-  }
-
   .hp-qn-link--cta { margin-left: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hp-headline-line,
+  .hp-brand-line,
+  .hp-hero__tagline,
   .hp-hero__sub,
-  .hp-role-chips,
   .hp-hero__ctas,
   .hp-hero__visual,
   .hp-scroll-indicator { animation: none; opacity: 1; transform: none; }
 
-  .hp-eyebrow-dot { animation: none; }
-  .hp-photo-badge--tl,
-  .hp-photo-badge--br { animation: none; }
   .hp-scroll-line { animation: none; }
 }
 </style>

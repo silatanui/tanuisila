@@ -202,9 +202,9 @@ require_once __DIR__ . '/header.php';
   .blog-article-content {
     max-width: 100%;
     margin-bottom: 40px;
-    font-size: 1.08rem;
-    line-height: 1.85;
-    color: var(--text, #0f172a);
+    font-size: 1.06rem;
+    line-height: 1.8;
+    color: #1e293b;
     word-break: break-word;
   }
 
@@ -230,19 +230,21 @@ require_once __DIR__ . '/header.php';
 
   .blog-article-content p {
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    margin-bottom: 1.5rem;
-    font-size: 1.08rem;
-    line-height: 1.85;
+    margin-bottom: 1.45rem;
+    font-size: 1.06rem;
+    line-height: 1.8;
     color: #1e293b;
   }
 
   .blog-article-content blockquote {
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    border-left: 4px solid var(--accent, #ea580c);
-    background: rgba(234, 88, 12, 0.05);
-    padding: 16px 22px;
-    margin: 1.8rem 0;
+    border-left: 3px solid var(--accent, #ea580c);
+    background: rgba(234, 88, 12, 0.04);
+    padding: 18px 22px;
+    margin: 2rem 0;
     font-style: italic;
+    font-size: 1.08rem;
+    line-height: 1.65;
     color: #334155;
   }
 
@@ -298,11 +300,14 @@ require_once __DIR__ . '/header.php';
   .blog-article-content a {
     color: var(--accent, #ea580c);
     text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
     font-weight: 600;
   }
 
   .blog-article-content a:hover {
     color: var(--accent-muted, #c2410c);
+    text-decoration-thickness: 2px;
   }
 
   .blog-article-content table {

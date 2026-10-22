@@ -287,6 +287,11 @@ if (!isset($activePage)) {
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       border-bottom: 1px solid var(--light-gray);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sh.is-scrolled {
+      background: rgba(248,249,250,0.98);
+      box-shadow: 0 1px 0 rgba(15,23,42,0.06);
     }
     .sh__inner {
       display: flex;
@@ -296,6 +301,14 @@ if (!isset($activePage)) {
       gap: 28px;
       padding-top: 0;
       padding-bottom: 0;
+      transition: min-height 0.22s ease;
+    }
+    .sh.is-scrolled .sh__inner {
+      min-height: 58px;
+    }
+    .sh.is-scrolled .sh__logo {
+      width: 36px;
+      height: 36px;
     }
     .sh__brand {
       display: flex;
@@ -486,6 +499,16 @@ if (!isset($activePage)) {
         ? '<i class="fa-solid fa-xmark"></i>'
         : '<i class="fa-solid fa-bars"></i>';
     }
+
+    (function initHeaderScroll() {
+      const header = document.querySelector('.sh');
+      if (!header) return;
+      const onScroll = () => {
+        header.classList.toggle('is-scrolled', window.scrollY > 12);
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    })();
   </script>
 </head>
 <body>

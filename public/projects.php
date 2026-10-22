@@ -62,21 +62,15 @@ require_once __DIR__ . '/header.php';
             <article class="featured-project-card" style="background: var(--soft-bg); border: 1px solid var(--light-gray); padding: 36px; position: relative;">
               
               <div class="featured-project-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid var(--light-gray); padding-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                   <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #15803d;">
                     <span style="width: 6px; height: 6px; background: #22c55e; border-radius: 50%; display: inline-block;"></span>
                     Active Production
                   </span>
-                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent-muted); letter-spacing: 0.1em; text-transform: uppercase;">
-                    Featured Project #<?php echo str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT); ?>
+                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;">
+                    Project #<?php echo str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT); ?>
                   </span>
                 </div>
-                
-                <?php if (!empty($p['url'])): ?>
-                  <a class="btn primary" href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" style="font-size: 0.8rem; padding: 10px 20px;">
-                    <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right: 6px;"></i> Launch Live Application
-                  </a>
-                <?php endif; ?>
               </div>
 
               <div class="featured-project-grid" style="display: grid; grid-template-columns: <?php echo !empty($pImg) ? '1.15fr 0.85fr' : '1fr'; ?>; gap: 36px; align-items: start;">
@@ -143,11 +137,11 @@ require_once __DIR__ . '/header.php';
                     </div>
                   <?php endif; ?>
 
-                  <!-- Launch CTA -->
+                  <!-- Launch CTA (single action per card) -->
                   <?php if (!empty($p['url'])): ?>
                     <div style="padding-top: 10px; border-top: 1px solid var(--light-gray); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                       <a class="btn primary" href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 8px;">
-                        Open Live Application <i class="fa-solid fa-arrow-right"></i>
+                        Launch Live Application <i class="fa-solid fa-arrow-up-right-from-square"></i>
                       </a>
                       <span style="font-size: 0.78rem; color: var(--muted); font-family: monospace;">
                         <?php echo htmlspecialchars(preg_replace('#^https?://#', '', rtrim($p['url'], '/')), ENT_QUOTES, 'UTF-8'); ?>

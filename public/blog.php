@@ -14,20 +14,23 @@ $blogPosts = $pdo->query("
 
 <main class="container">
   <section id="blog" class="section-row" style="border-bottom:none;">
-    <div class="section-label">Blog</div>
+    <div class="section-label reveal-on-enter">Blog</div>
     <div class="section-content">
-      <h2>Writing &amp; Insights</h2>
+      <h2 class="reveal-on-enter">Writing &amp; Insights</h2>
       <div class="blog-list">
         <?php if (!empty($blogPosts)): ?>
-          <?php foreach ($blogPosts as $post): ?>
-            <?php $cCount = (int)($post['comments_count'] ?? 0); ?>
-            <article class="blog-post">
+          <?php foreach ($blogPosts as $index => $post): ?>
+            <?php
+              $cCount = (int)($post['comments_count'] ?? 0);
+              $isFeatured = $index === 0;
+            ?>
+            <article class="blog-post reveal-on-enter<?php echo $isFeatured ? ' blog-post--featured' : ''; ?>">
               <?php if (!empty($post['featured_image'])): ?>
                 <div class="img-skeleton-wrap blog-post__media">
                   <img 
                     src="<?php echo htmlspecialchars(portfolioAssetUrl($post['featured_image'])); ?>" 
                     alt="<?php echo htmlspecialchars($post['title']); ?>" 
-                    loading="lazy"
+                    loading="<?php echo $isFeatured ? 'eager' : 'lazy'; ?>"
                     decoding="async"
                     style="width: 100%; height: 100%; object-fit: cover; display: block;"
                     onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
@@ -38,7 +41,10 @@ $blogPosts = $pdo->query("
               <div class="blog-post__row">
                 <div class="blog-post__body">
                   <div class="blog-post__meta">
-                    <div class="blog-post__meta-item blog-post__meta-item--date">
+                    <?php if ($isFeatured): ?>
+                      <div class="blog-post__meta-item blog-post__meta-item--date">Featured</div>
+                    <?php endif; ?>
+                    <div class="blog-post__meta-item<?php echo $isFeatured ? '' : ' blog-post__meta-item--date'; ?>">
                       <?php echo !empty($post['published_at']) ? date('M d, Y', strtotime($post['published_at'])) : 'Unpublished'; ?>
                     </div>
                     <?php if (!empty($post['category'])): ?>
