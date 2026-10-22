@@ -1,0 +1,12 @@
+/* TEAM */
+Name: Tanui Kipng'etich Sila
+Role: Computer Scientist · Software Developer
+Site: https://tanuisila.dev
+Contact: via /contact.php
+GitHub: https://github.com/silatanui
+
+/* SITE */
+Standards: HTML5, CSS3, PHP
+Components: Outfit, Font Awesome, MySQL
+Software: Apache / LiteSpeed, cPanel Git deploy
+Last update: 2026-10-22
