@@ -144,9 +144,47 @@ try {
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DISCOVER — Lab / SaaS / Interests                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="hp-about" style="padding-top:48px;padding-bottom:48px;border-bottom:1px solid var(--light-gray);">
+  <div class="container">
+    <div class="hp-section-label">
+      <span class="hp-section-label__text">Discover</span>
+    </div>
+    <h2 class="hp-specialties__title" style="margin-bottom:24px;">Lab, products, and interests</h2>
+    <div class="feature-grid">
+      <article class="feature-tile reveal-on-enter">
+        <div class="feature-tile__icon"><i class="fa-solid fa-flask"></i></div>
+        <h3>The Lab</h3>
+        <p>Experiments, Byte Lab tools, and workshop notes.</p>
+        <a class="tile-link" href="<?php echo appUrl('lab.php'); ?>">Enter Lab →</a>
+      </article>
+      <article class="feature-tile reveal-on-enter">
+        <div class="feature-tile__icon"><i class="fa-solid fa-rocket"></i></div>
+        <h3>SaaS bench</h3>
+        <p>CV Studio and other product experiments shipping in public.</p>
+        <a class="tile-link" href="<?php echo appUrl('saas.php'); ?>">View products →</a>
+      </article>
+      <article class="feature-tile reveal-on-enter">
+        <div class="feature-tile__icon"><i class="fa-solid fa-microchip"></i></div>
+        <h3>Reverse engineering</h3>
+        <p>Interest area: formats, binaries, and careful analysis.</p>
+        <a class="tile-link" href="<?php echo appUrl('reverse-engineering.php'); ?>">Explore →</a>
+      </article>
+      <article class="feature-tile reveal-on-enter">
+        <div class="feature-tile__icon"><i class="fa-solid fa-bolt"></i></div>
+        <h3>Now</h3>
+        <p>What is being built, learned, and read this month.</p>
+        <a class="tile-link" href="<?php echo appUrl('now.php'); ?>">See now →</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ABOUT SNAPSHOT SECTION                                     -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-<main>
+<main id="main-content">
 <section class="hp-about">
   <div class="container hp-about__inner">
 
