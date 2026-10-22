@@ -27,6 +27,7 @@
             <li><a href="<?php echo appUrl('about.php'); ?>" style="color: var(--text); text-decoration:none;">About</a></li>
             <li><a href="<?php echo appUrl('projects.php'); ?>" style="color: var(--text); text-decoration:none;">Projects</a></li>
             <li><a href="<?php echo appUrl('blog.php'); ?>" style="color: var(--text); text-decoration:none;">Blog</a></li>
+            <li><a href="<?php echo appUrl('now.php'); ?>" style="color: var(--text); text-decoration:none;">Now</a></li>
           </ul>
         </div>
 
@@ -34,9 +35,10 @@
         <div>
           <h5 style="margin:0 0 12px; font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color: var(--muted);">Explore</h5>
           <ul class="footer-links-list" style="list-style:none; padding:0; margin:0; display:grid; gap:8px; font-size:0.88rem; font-weight:500;">
-            <li><a href="<?php echo appUrl('skills.php'); ?>" style="color: var(--text); text-decoration:none;">Skills</a></li>
-            <li><a href="<?php echo appUrl('experience.php'); ?>" style="color: var(--text); text-decoration:none;">Experience</a></li>
-            <li><a href="<?php echo appUrl('education.php'); ?>" style="color: var(--text); text-decoration:none;">Education</a></li>
+            <li><a href="<?php echo appUrl('lab.php'); ?>" style="color: var(--text); text-decoration:none;">Lab</a></li>
+            <li><a href="<?php echo appUrl('saas.php'); ?>" style="color: var(--text); text-decoration:none;">SaaS</a></li>
+            <li><a href="<?php echo appUrl('tools.php'); ?>" style="color: var(--text); text-decoration:none;">Tools</a></li>
+            <li><a href="<?php echo appUrl('sitemap.php'); ?>" style="color: var(--text); text-decoration:none;">Sitemap</a></li>
             <li><a href="<?php echo appUrl('contact.php'); ?>" style="color: var(--text); text-decoration:none;">Contact</a></li>
           </ul>
         </div>
@@ -45,7 +47,7 @@
 
   <!-- BOTTOM BRANDING DIVIDERS -->
   <div style="border-top:1px solid var(--light-gray); padding-top:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; font-size:0.78rem; font-weight:500; color: var(--muted); width: 100%;">
-    <p style="margin:0;">© <?php echo date('Y'); ?> <?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?>. All rights reserved.</p>
+    <p style="margin:0;">© <?php echo date('Y'); ?> <?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?>. All rights reserved. · Updated <?php echo date('M Y'); ?> · <a href="<?php echo appUrl('feed.php'); ?>" style="color:inherit;text-decoration:underline;">RSS</a> · <a href="<?php echo appUrl('colophon.php'); ?>" style="color:inherit;text-decoration:underline;">Colophon</a></p>
     <div style="display:flex; gap:16px; align-items:center;">
       <?php if (!empty($profile['github'])): ?>
         <a href="<?php echo htmlspecialchars($profile['github']); ?>" target="_blank" rel="noopener noreferrer" style="text-decoration:none;"><i class="fa-brands fa-github" style="font-size:1.05rem; color:var(--text);"></i></a>
