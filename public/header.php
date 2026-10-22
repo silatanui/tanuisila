@@ -149,6 +149,8 @@ if (!isset($activePage)) {
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?php echo appUrl('assets/css/styles.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/styles.css'); ?>">
   <link rel="stylesheet" href="<?php echo appUrl('assets/css/extras.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/extras.css'); ?>">
+  <link rel="stylesheet" href="<?php echo appUrl('assets/css/print.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/print.css'); ?>" media="print">
+  <link rel="alternate" type="application/rss+xml" title="Blog RSS" href="<?php echo appUrl('feed.php'); ?>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" crossorigin="anonymous">
   <style>
     /* ═══════════════════════════════════════════════════════
@@ -603,6 +605,12 @@ if (!isset($activePage)) {
       <a href="<?php echo appUrl('projects.php'); ?>"   class="sh__drawer-link <?php echo $activePage === 'projects'   ? 'active' : ''; ?>"><i class="fa-solid fa-code"></i> Projects</a>
       <a href="<?php echo appUrl('blog.php'); ?>"       class="sh__drawer-link <?php echo $activePage === 'blog'       ? 'active' : ''; ?>"><i class="fa-solid fa-pen-nib"></i> Blog</a>
       <a href="<?php echo appUrl('contact.php'); ?>"    class="sh__drawer-link <?php echo $activePage === 'contact'    ? 'active' : ''; ?>"><i class="fa-solid fa-paper-plane"></i> Contact</a>
+      <div class="sh__drawer-divider"></div>
+      <a href="<?php echo appUrl('lab.php'); ?>" class="sh__drawer-link <?php echo $activePage === 'lab' ? 'active' : ''; ?>"><i class="fa-solid fa-flask"></i> Lab</a>
+      <a href="<?php echo appUrl('saas.php'); ?>" class="sh__drawer-link <?php echo $activePage === 'saas' ? 'active' : ''; ?>"><i class="fa-solid fa-rocket"></i> SaaS</a>
+      <a href="<?php echo appUrl('now.php'); ?>" class="sh__drawer-link <?php echo $activePage === 'now' ? 'active' : ''; ?>"><i class="fa-solid fa-bolt"></i> Now</a>
+      <a href="<?php echo appUrl('tools.php'); ?>" class="sh__drawer-link <?php echo $activePage === 'tools' ? 'active' : ''; ?>"><i class="fa-solid fa-terminal"></i> Tools</a>
+      <a href="<?php echo appUrl('sitemap.php'); ?>" class="sh__drawer-link"><i class="fa-solid fa-map"></i> Sitemap</a>
       <div class="sh__drawer-divider"></div>
       <div class="sh__drawer-contact">
         <a href="mailto:silatanuikipngetich@gmail.com"><i class="fa-solid fa-envelope"></i> silatanuikipngetich@gmail.com</a>
