@@ -175,5 +175,7 @@
     }
   </script>
   <script src="<?php echo appUrl('assets/js/command-palette.js'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/js/command-palette.js'); ?>" defer></script>
+  <script src="<?php echo appUrl('assets/js/reading-progress.js'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/js/reading-progress.js'); ?>" defer></script>
+  <script src="<?php echo appUrl('assets/js/back-to-top.js'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/js/back-to-top.js'); ?>" defer></script>
 </body>
 </html>
