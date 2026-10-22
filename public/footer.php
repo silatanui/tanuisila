@@ -174,5 +174,6 @@
       initRevealOnEnter();
     }
   </script>
+  <script src="<?php echo appUrl('assets/js/command-palette.js'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/js/command-palette.js'); ?>" defer></script>
 </body>
 </html>
