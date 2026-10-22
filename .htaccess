@@ -5,6 +5,9 @@
 # Set default index file
 DirectoryIndex index.php public/index.php
 
+# Friendly error page
+ErrorDocument 404 /404.php
+
 # Prevent directory indexing
 Options -Indexes
 
@@ -23,6 +26,9 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+
+    # XML sitemap alias
+    RewriteRule ^sitemap\.xml$ sitemap.xml.php [L]
 
     # Optional: Force HTTPS (uncomment if SSL is active on your domain)
     # RewriteCond %{HTTPS} off
