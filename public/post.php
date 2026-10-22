@@ -624,12 +624,30 @@ require_once __DIR__ . '/header.php';
             </div>
           <?php endif; ?>
 
-          <!-- Back Button -->
-          <div style="padding-top: 20px; border-top: 1px solid var(--light-gray); margin-bottom: 48px;">
+          <!-- Back + Share -->
+          <div style="padding-top: 20px; border-top: 1px solid var(--light-gray); margin-bottom: 48px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;">
             <a href="blog.php" style="color: var(--accent); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem;">
               <i class="fa-solid fa-arrow-left"></i> Back to Blog
             </a>
+            <button type="button" id="copy-post-link" class="btn" style="cursor:pointer; font-size:0.78rem;">
+              <i class="fa-solid fa-link"></i> Copy link
+            </button>
           </div>
+          <script>
+            (function () {
+              const btn = document.getElementById('copy-post-link');
+              if (!btn) return;
+              btn.addEventListener('click', async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+                  setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-link"></i> Copy link'; }, 1600);
+                } catch (e) {
+                  prompt('Copy this link:', window.location.href);
+                }
+              });
+            })();
+          </script>
 
           <!-- ═══════════════════════════════════════════════════════ -->
           <!-- COMMENTS & DISCUSSION SECTION                           -->
