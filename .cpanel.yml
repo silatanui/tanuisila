@@ -2,5 +2,6 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/ipusgkqs/public_html/
-    - /bin/cp -Rfv index.php about.php blog.php contact.php education.php experience.php privacy.php projects.php research.php skills.php post.php .htaccess $DEPLOYPATH
+    # Copy only — never rm/clean. Other folders in public_html are left alone.
     - /bin/cp -Rfv admin assets config database includes public $DEPLOYPATH
+    - for f in index.php about.php blog.php contact.php education.php experience.php privacy.php projects.php research.php skills.php post.php .htaccess feed.php sitemap.php sitemap.xml.php 404.php now.php uses.php lab.php saas.php tools.php guestbook.php changelog.php colophon.php friends.php faq.php reading.php talks.php resources.php open-source.php reverse-engineering.php; do [ -f "$f" ] && /bin/cp -fv "$f" "$DEPLOYPATH"; done
