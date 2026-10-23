@@ -181,10 +181,10 @@ $authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jp
         <div class="bp-main">
 
           <?php if (!empty($post['excerpt'])): ?>
-            <p class="bp-dek reveal-on-enter"><?php echo htmlspecialchars($post['excerpt'], ENT_QUOTES, 'UTF-8'); ?></p>
+            <p class="bp-dek"><?php echo htmlspecialchars($post['excerpt'], ENT_QUOTES, 'UTF-8'); ?></p>
           <?php endif; ?>
 
-          <div class="bp-prose reveal-on-enter">
+          <div class="bp-prose">
             <?php echo $post['content']; ?>
           </div>
 
