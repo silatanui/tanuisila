@@ -111,7 +111,8 @@ if ($filterPostId > 0) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=1">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
   <style>
     .comment-card {
       background: var(--panel-alt);
@@ -263,141 +264,86 @@ if ($filterPostId > 0) {
           </div>
         </div>
 
-        <!-- Search Bar & Bulk Actions -->
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
-          <div style="position: relative; min-width: 280px; flex: 1; max-width: 420px;">
-            <input 
-              type="text" 
-              id="comment-search-input" 
-              placeholder="Search comments by author, email, content..." 
-              onkeyup="filterCommentsLive()"
-              style="padding-left: 36px;"
-            >
-            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.85rem;"></i>
-          </div>
-
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <?php if ($pendingCount > 0): ?>
-              <a href="comments.php?bulk=approve_all_pending" class="btn small" style="background: var(--success); color: #fff; border-color: var(--success);" onclick="return confirm('Approve all pending comments?');">
-                <i class="fa-solid fa-check-double"></i> Approve All Pending
-              </a>
-            <?php endif; ?>
-            <?php if ($spamCount > 0): ?>
-              <a href="comments.php?bulk=delete_all_spam" class="btn small danger" onclick="return confirm('Delete all spam comments permanently?');">
-                <i class="fa-solid fa-trash-can"></i> Clear All Spam
-              </a>
-            <?php endif; ?>
-          </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+          <?php if ($pendingCount > 0): ?>
+            <a href="comments.php?bulk=approve_all_pending" class="btn small" style="background: var(--success); color: #fff; border-color: var(--success);" onclick="return confirm('Approve all pending comments?');">
+              <i class="fa-solid fa-check-double"></i> Approve All Pending
+            </a>
+          <?php endif; ?>
+          <?php if ($spamCount > 0): ?>
+            <a href="comments.php?bulk=delete_all_spam" class="btn small danger" onclick="return confirm('Delete all spam comments permanently?');">
+              <i class="fa-solid fa-trash-can"></i> Clear All Spam
+            </a>
+          <?php endif; ?>
         </div>
 
-        <!-- Comments List -->
         <?php if (empty($commentsList)): ?>
           <div style="padding: 40px; text-align: center; color: var(--muted);">
             <i class="fa-regular fa-comments" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
             <p style="margin: 0; font-size: 1rem; font-weight: 600;">No comments found in this category.</p>
           </div>
         <?php else: ?>
-          <div id="comments-container">
-            <?php foreach ($commentsList as $comm): ?>
-              <?php
-                $initial = strtoupper(substr(trim($comm['author_name']), 0, 1));
-                $createdFormatted = date('M d, Y \a\t g:i A', strtotime($comm['created_at']));
-                $currentStatus = $comm['status'] ?? 'approved';
-              ?>
-              <div class="comment-card <?php echo htmlspecialchars($currentStatus); ?>" data-search-content="<?php echo htmlspecialchars(strtolower($comm['author_name'] . ' ' . $comm['author_email'] . ' ' . $comm['comment_text'] . ' ' . ($comm['post_title'] ?? ''))); ?>">
-                <div class="comment-meta-row">
-                  <div style="display: flex; gap: 14px; align-items: flex-start;">
-                    <div style="width: 40px; height: 40px; background: var(--text); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; flex-shrink: 0;">
-                      <?php echo $initial; ?>
-                    </div>
-                    <div>
-                      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <strong style="font-size: 1.05rem; color: var(--text);"><?php echo htmlspecialchars($comm['author_name']); ?></strong>
-                        <span class="status-badge <?php echo htmlspecialchars($currentStatus); ?>">
-                          <?php echo ucfirst($currentStatus); ?>
-                        </span>
-                      </div>
-                      <div style="margin-top: 4px; font-size: 0.84rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                        <?php if (!empty($comm['author_email'])): ?>
-                          <a href="mailto:<?php echo htmlspecialchars($comm['author_email']); ?>" style="color: var(--primary); text-decoration: underline;">
-                            <i class="fa-solid fa-envelope" style="margin-right: 4px;"></i><?php echo htmlspecialchars($comm['author_email']); ?>
-                          </a>
-                        <?php else: ?>
-                          <span style="color: var(--muted); font-style: italic;">
-                            <i class="fa-solid fa-user-secret" style="margin-right: 4px;"></i>No email provided (Anonymous)
-                          </span>
-                        <?php endif; ?>
-                        <span>•</span>
-                        <span>
-                          <i class="fa-regular fa-clock" style="margin-right: 4px;"></i><?php echo $createdFormatted; ?>
-                        </span>
-                      </div>
-                      <?php if (!empty($comm['post_title'])): ?>
-                        <div style="margin-top: 4px; font-size: 0.84rem; color: var(--muted);">
-                          <i class="fa-solid fa-file-lines" style="margin-right: 4px; color: var(--primary);"></i> Article: 
-                          <a href="../post.php?slug=<?php echo urlencode($comm['post_slug']); ?>#discussion" target="_blank" style="color: var(--text); font-weight: 700; text-decoration: underline;">
-                            <?php echo htmlspecialchars($comm['post_title']); ?>
-                          </a>
-                          <span style="margin: 0 6px;">|</span>
-                          <a href="?post_id=<?php echo (int)$comm['post_id']; ?>" style="color: var(--primary); font-size: 0.78rem;">
-                            View post comments
-                          </a>
-                        </div>
+          <div class="table-wrap">
+            <table id="comments-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[4,"desc"]]'>
+              <thead>
+                <tr>
+                  <th>Author</th>
+                  <th>Email</th>
+                  <th>Post</th>
+                  <th>Comment</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($commentsList as $comm):
+                  $currentStatus = $comm['status'] ?? 'approved';
+                  $createdFormatted = date('M d, Y g:i A', strtotime($comm['created_at']));
+                  $dateTs = strtotime($comm['created_at']) ?: 0;
+                  $text = (string)($comm['comment_text'] ?? '');
+                ?>
+                  <tr>
+                    <td><strong><?php echo htmlspecialchars($comm['author_name']); ?></strong></td>
+                    <td>
+                      <?php if (!empty($comm['author_email'])): ?>
+                        <a href="mailto:<?php echo htmlspecialchars($comm['author_email']); ?>" style="color:var(--primary);"><?php echo htmlspecialchars($comm['author_email']); ?></a>
+                      <?php else: ?>
+                        <span style="color:var(--muted);font-style:italic;">—</span>
                       <?php endif; ?>
-                    </div>
-                  </div>
-
-                  <!-- Actions -->
-                  <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                    <?php if ($currentStatus !== 'approved'): ?>
-                      <a href="?action=approve&id=<?php echo (int)$comm['id']; ?>&status=<?php echo $filterStatus; ?>" class="btn small" style="background: var(--success); color: #fff; border-color: var(--success);" title="Approve comment">
-                        <i class="fa-solid fa-check"></i> Approve
-                      </a>
-                    <?php endif; ?>
-
-                    <?php if ($currentStatus !== 'pending'): ?>
-                      <a href="?action=pending&id=<?php echo (int)$comm['id']; ?>&status=<?php echo $filterStatus; ?>" class="btn small" style="background: var(--bg); border: 1px solid var(--line);" title="Move to pending">
-                        <i class="fa-solid fa-hourglass-half"></i> Pending
-                      </a>
-                    <?php endif; ?>
-
-                    <?php if ($currentStatus !== 'spam'): ?>
-                      <a href="?action=spam&id=<?php echo (int)$comm['id']; ?>&status=<?php echo $filterStatus; ?>" class="btn small" style="background: var(--bg); border: 1px solid var(--line); color: var(--danger);" title="Mark as spam">
-                        <i class="fa-solid fa-ban"></i> Spam
-                      </a>
-                    <?php endif; ?>
-
-                    <a href="?action=delete&id=<?php echo (int)$comm['id']; ?>&status=<?php echo $filterStatus; ?>" class="btn small danger" onclick="return confirm('Delete comment from <?php echo htmlspecialchars($comm['author_name']); ?> permanently?');" title="Delete permanently">
-                      <i class="fa-solid fa-trash"></i>
-                    </a>
-                  </div>
-                </div>
-
-                <!-- Comment Content -->
-                <div style="font-size: 0.94rem; line-height: 1.6; color: var(--text); background: var(--panel); padding: 14px 16px; border: 1px solid var(--line); white-space: pre-line;">
-                  <?php echo nl2br(htmlspecialchars($comm['comment_text'])); ?>
-                </div>
-              </div>
-            <?php endforeach; ?>
+                    </td>
+                    <td>
+                      <?php if (!empty($comm['post_title'])): ?>
+                        <a href="../post.php?slug=<?php echo urlencode($comm['post_slug']); ?>#discussion" target="_blank" rel="noopener"><?php echo htmlspecialchars($comm['post_title']); ?></a>
+                      <?php else: ?>
+                        —
+                      <?php endif; ?>
+                    </td>
+                    <td><?php echo htmlspecialchars(strlen($text) > 120 ? substr($text, 0, 117) . '…' : $text); ?></td>
+                    <td><span class="status-pill <?php echo htmlspecialchars($currentStatus); ?>"><?php echo htmlspecialchars(ucfirst($currentStatus)); ?></span></td>
+                    <td data-order="<?php echo (int)$dateTs; ?>"><?php echo $createdFormatted; ?></td>
+                    <td class="actions-cell">
+                      <?php if ($currentStatus !== 'approved'): ?>
+                        <a href="?action=approve&id=<?php echo (int)$comm['id']; ?>&status=<?php echo urlencode($filterStatus); ?>" class="btn small" style="background:var(--success);color:#fff;border-color:var(--success);" title="Approve"><i class="fa-solid fa-check"></i></a>
+                      <?php endif; ?>
+                      <?php if ($currentStatus !== 'pending'): ?>
+                        <a href="?action=pending&id=<?php echo (int)$comm['id']; ?>&status=<?php echo urlencode($filterStatus); ?>" class="btn small" title="Pending"><i class="fa-solid fa-hourglass-half"></i></a>
+                      <?php endif; ?>
+                      <?php if ($currentStatus !== 'spam'): ?>
+                        <a href="?action=spam&id=<?php echo (int)$comm['id']; ?>&status=<?php echo urlencode($filterStatus); ?>" class="btn small" style="color:var(--danger);" title="Spam"><i class="fa-solid fa-ban"></i></a>
+                      <?php endif; ?>
+                      <a href="?action=delete&id=<?php echo (int)$comm['id']; ?>&status=<?php echo urlencode($filterStatus); ?>" class="btn small danger" onclick="return confirm('Delete comment from <?php echo htmlspecialchars(addslashes($comm['author_name'])); ?>?');" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
           </div>
         <?php endif; ?>
       </section>
     </main>
   </div>
 
-  <script>
-    function filterCommentsLive() {
-      const q = document.getElementById('comment-search-input').value.toLowerCase().trim();
-      const cards = document.querySelectorAll('#comments-container .comment-card');
-      cards.forEach(card => {
-        const content = card.getAttribute('data-search-content') || '';
-        if (content.includes(q)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    }
-  </script>
+  <?php adminDataTablesFooter(); ?>
 </body>
 </html>

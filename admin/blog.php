@@ -118,8 +118,8 @@ $posts = $pdo->query('
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
   <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js" referrerpolicy="origin"></script>
   <script>
     // Fresh DB content for TinyMCE (avoids stale / empty editor on Edit)
@@ -168,64 +168,6 @@ $posts = $pdo->query('
     }
     .editor-loading.is-hidden { display: none; }
     .editor-loading i { color: var(--primary); }
-
-    /* DataTables — match admin theme */
-    .dataTables_wrapper {
-      font-family: 'Outfit', sans-serif !important;
-      padding-top: 4px;
-    }
-    .dataTables_wrapper .dataTables_length,
-    .dataTables_wrapper .dataTables_filter,
-    .dataTables_wrapper .dataTables_info,
-    .dataTables_wrapper .dataTables_paginate {
-      font-size: 0.88rem;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-    .dataTables_wrapper .dataTables_filter input {
-      border: 1px solid var(--line);
-      padding: 8px 12px;
-      margin-left: 8px;
-      font-family: 'Outfit', sans-serif;
-      min-width: 200px;
-    }
-    .dataTables_wrapper .dataTables_length select {
-      border: 1px solid var(--line);
-      padding: 6px 10px;
-      font-family: 'Outfit', sans-serif;
-    }
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-      border: 1px solid var(--line) !important;
-      background: #fff !important;
-      color: var(--text) !important;
-      padding: 4px 10px !important;
-      margin: 0 2px !important;
-      border-radius: 0 !important;
-    }
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-      background: var(--primary) !important;
-      border-color: var(--primary) !important;
-      color: #fff !important;
-    }
-    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
-      opacity: 0.4;
-    }
-    #blog-posts-table {
-      width: 100% !important;
-    }
-    #blog-posts-table td.actions-cell {
-      white-space: nowrap;
-    }
-    #blog-posts-table .status-pill {
-      text-transform: uppercase;
-      font-weight: 800;
-      font-size: 0.72rem;
-      letter-spacing: 0.04em;
-    }
-    #blog-posts-table .status-pill.published { color: var(--success, #059669); }
-    #blog-posts-table .status-pill.draft { color: var(--muted); }
-    #blog-posts-table .status-pill.archived { color: #64748b; }
 
     .ai-hero-box {
       background: linear-gradient(135deg, rgba(234, 88, 12, 0.07) 0%, rgba(15, 23, 42, 0.03) 100%);
@@ -552,8 +494,8 @@ $posts = $pdo->query('
             <p style="margin: 0; font-size: 1rem; font-weight: 600;">No blog posts yet. Write your first article above!</p>
           </div>
         <?php else: ?>
-          <div style="overflow-x: auto;">
-            <table id="blog-posts-table" class="data-table display" style="width:100%">
+          <div class="table-wrap">
+            <table id="blog-posts-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[3,"desc"]]'>
               <thead>
                 <tr>
                   <th>Title</th>
@@ -561,7 +503,7 @@ $posts = $pdo->query('
                   <th>Category</th>
                   <th>Published</th>
                   <th>Comments</th>
-                  <th>Actions</th>
+                  <th class="no-sort">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -613,8 +555,6 @@ $posts = $pdo->query('
     </main>
   </div>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
   <script>
     const statusDiv = document.getElementById('ai-status');
 
@@ -1089,24 +1029,6 @@ $posts = $pdo->query('
       }
     });
 
-    // DataTables for posts list
-    if (window.jQuery && $('#blog-posts-table').length) {
-      $('#blog-posts-table').DataTable({
-        order: [[3, 'desc']],
-        pageLength: 10,
-        lengthMenu: [5, 10, 25, 50],
-        columnDefs: [
-          { orderable: false, targets: 5 }
-        ],
-        language: {
-          search: 'Search posts:',
-          lengthMenu: 'Show _MENU_ posts',
-          info: 'Showing _START_–_END_ of _TOTAL_ posts',
-          emptyTable: 'No blog posts yet'
-        }
-      });
-    }
-
     // Scroll to editor when editing / after save
     if (window.__BLOG_IS_EDITING || window.location.hash === '#post-editor-panel') {
       const panel = document.getElementById('post-editor-panel');
@@ -1117,5 +1039,6 @@ $posts = $pdo->query('
       }
     }
   </script>
+  <?php adminDataTablesFooter(); ?>
 </body>
 </html>

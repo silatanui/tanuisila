@@ -54,7 +54,8 @@ $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=1">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
   <div class="app-shell">
@@ -103,24 +104,47 @@ $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC
 
       <section class="panel">
         <h2>Saved entries</h2>
-        <div class="list">
-          <?php foreach ($publications as $item): ?>
-            <div class="list-item">
-              <div>
-                <strong><?php echo htmlspecialchars($item['title']); ?></strong>
-                <small><?php echo htmlspecialchars($item['venue']); ?> • <?php echo htmlspecialchars($item['publication_year']); ?></small>
-                <?php if (!empty($item['summary'])): ?><small><?php echo nl2br(htmlspecialchars($item['summary'])); ?></small><?php endif; ?>
-              </div>
-              <div class="list-meta">
-                <span class="tag">#<?php echo (int) $item['sort_order']; ?></span>
-                <?php if (!empty($item['url'])): ?><a class="btn" href="<?php echo htmlspecialchars($item['url']); ?>" target="_blank">Open</a><?php endif; ?>
-                <a class="btn danger" href="?delete=publications&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');">Delete</a>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        </div>
+        <?php if (empty($publications)): ?>
+          <p class="muted-copy">No publications added yet.</p>
+        <?php else: ?>
+          <div class="table-wrap">
+            <table id="publications-table" class="data-table display" style="width:100%" data-page-length="10">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Venue</th>
+                  <th>Year</th>
+                  <th>Summary</th>
+                  <th>Sort</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($publications as $item): ?>
+                  <tr>
+                    <td><strong><?php echo htmlspecialchars($item['title']); ?></strong></td>
+                    <td><?php echo htmlspecialchars($item['venue'] ?: '—'); ?></td>
+                    <td><?php echo htmlspecialchars($item['publication_year'] ?: '—'); ?></td>
+                    <td><?php
+                      $sum = (string)($item['summary'] ?? '');
+                      echo htmlspecialchars(strlen($sum) > 120 ? substr($sum, 0, 117) . '…' : $sum);
+                    ?></td>
+                    <td data-order="<?php echo (int) $item['sort_order']; ?>">#<?php echo (int) $item['sort_order']; ?></td>
+                    <td class="actions-cell">
+                      <?php if (!empty($item['url'])): ?>
+                        <a class="btn small" href="<?php echo htmlspecialchars($item['url']); ?>" target="_blank" rel="noopener">Open</a>
+                      <?php endif; ?>
+                      <a class="btn danger small" href="?delete=publications&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');">Delete</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
       </section>
     </main>
   </div>
+  <?php adminDataTablesFooter(); ?>
 </body>
 </html>

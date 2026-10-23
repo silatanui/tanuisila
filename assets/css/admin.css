@@ -601,6 +601,114 @@ input:focus, textarea:focus, select:focus {
   border-bottom: none;
 }
 
+.data-table td.actions-cell,
+.data-table th.no-sort {
+  white-space: nowrap;
+}
+
+.data-table .status-pill {
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.data-table .status-pill.published,
+.data-table .status-pill.approved,
+.data-table .status-pill.read,
+.data-table .status-pill.active {
+  color: var(--success, #059669);
+}
+
+.data-table .status-pill.draft,
+.data-table .status-pill.pending,
+.data-table .status-pill.unread {
+  color: var(--warning, #d97706);
+}
+
+.data-table .status-pill.spam,
+.data-table .status-pill.archived,
+.data-table .status-pill.hidden {
+  color: var(--danger, #dc2626);
+}
+
+.data-table .thumb-mini {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  display: block;
+}
+
+.data-table .thumb-placeholder {
+  width: 72px;
+  height: 48px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+/* DataTables chrome — match Outfit admin theme */
+.dataTables_wrapper {
+  font-family: 'Outfit', sans-serif !important;
+  padding-top: 4px;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  margin-left: 8px;
+  font-family: 'Outfit', sans-serif;
+  min-width: 200px;
+  background: #fff;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  font-family: 'Outfit', sans-serif;
+  background: #fff;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border: 1px solid var(--line) !important;
+  background: #fff !important;
+  color: var(--text) !important;
+  padding: 4px 10px !important;
+  margin: 0 2px !important;
+  border-radius: 0 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  opacity: 0.4;
+}
+
+.dataTables_wrapper table.data-table {
+  width: 100% !important;
+  margin-top: 8px !important;
+  margin-bottom: 8px !important;
+}
+
 /* ── QUICK CARDS (OVERVIEW DASHBOARD) ────────────────────────── */
 .quick-card {
   display: block;

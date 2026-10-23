@@ -79,7 +79,8 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=1">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
   <div class="app-shell">
@@ -140,7 +141,7 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
           <p class="muted-copy">No work experience entries added yet.</p>
         <?php else: ?>
           <div class="table-wrap">
-            <table class="data-table">
+            <table id="experience-table" class="data-table display" style="width:100%" data-page-length="10">
               <thead>
                 <tr>
                   <th>Company</th>
@@ -148,7 +149,7 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
                   <th>Location</th>
                   <th>Period</th>
                   <th>Description</th>
-                  <th>Action</th>
+                  <th class="no-sort">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,7 +160,7 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
                     <td><?php echo htmlspecialchars($item['location'] ?: '-'); ?></td>
                     <td><?php echo htmlspecialchars($item['start_date'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></td>
                     <td><?php echo nl2br(htmlspecialchars($item['description'] ?: '-')); ?></td>
-                    <td>
+                    <td class="actions-cell">
                       <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
                       <a class="btn danger small" href="?delete=experience&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>
                     </td>
@@ -172,5 +173,6 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
       </section>
     </main>
   </div>
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesFooter(); ?>
 </body>
 </html>

@@ -87,7 +87,8 @@ foreach ($messages as $m) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=1">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
   <style>
     .kpi-grid {
       display: grid;
@@ -278,32 +279,18 @@ foreach ($messages as $m) {
       <!-- ═══════════════════════════════════════════════════════ -->
       <section class="panel">
         
-        <!-- Filter & Search Bar -->
         <div class="filter-bar">
           <div class="filter-tabs">
-            <button type="button" class="tab-btn active" onclick="filterMessages('all', this)">
-              All Messages (<?php echo $totalCount; ?>)
-            </button>
-            <button type="button" class="tab-btn" onclick="filterMessages('unread', this)">
-              Unread (<?php echo $unreadCount; ?>)
-            </button>
-            <button type="button" class="tab-btn" onclick="filterMessages('read', this)">
-              Read (<?php echo $readCount; ?>)
-            </button>
+            <button type="button" class="tab-btn active" data-msg-filter="all">All (<?php echo $totalCount; ?>)</button>
+            <button type="button" class="tab-btn" data-msg-filter="Unread">Unread (<?php echo $unreadCount; ?>)</button>
+            <button type="button" class="tab-btn" data-msg-filter="Read">Read (<?php echo $readCount; ?>)</button>
           </div>
-
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <div class="search-input-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="search-messages" placeholder="Search by name, email, keyword..." onkeyup="searchMessages()">
-            </div>
-
             <?php if ($unreadCount > 0): ?>
               <a href="messages.php?mark_all_read=1" class="btn small" style="background: var(--primary); color: #fff;">
                 <i class="fa-solid fa-check-double"></i> Mark All Read
               </a>
             <?php endif; ?>
-
             <?php if ($readCount > 0): ?>
               <a href="messages.php?delete_read=1" class="btn small danger" onclick="return confirm('Delete all read messages?');">
                 <i class="fa-solid fa-trash-can"></i> Clean Read
@@ -312,82 +299,54 @@ foreach ($messages as $m) {
           </div>
         </div>
 
-        <!-- Messages Listing -->
         <?php if (empty($messages)): ?>
           <div style="padding: 40px; text-align: center; color: var(--muted);">
             <i class="fa-solid fa-envelope-open" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px;"></i>
             <p style="margin: 0; font-size: 1rem; font-weight: 600;">Your inbox is clear. No visitor messages received yet.</p>
           </div>
         <?php else: ?>
-          <div id="messages-list">
-            <?php foreach ($messages as $msg): ?>
-              <?php 
-                $isRead = !empty($msg['is_read']);
-                $initial = strtoupper(substr(trim($msg['name'] ?: 'V'), 0, 1));
-                $replySubject = 'Re: ' . ($msg['subject'] ?: 'Inquiry regarding Tanui Sila portfolio');
-                $replyBody = "Hi " . htmlspecialchars($msg['name']) . ",\n\nThank you for reaching out regarding your inquiry:\n> " . str_replace("\n", "\n> ", htmlspecialchars($msg['message'])) . "\n\nBest regards,\nTanui Sila";
-                $mailtoUrl = 'mailto:' . rawurlencode($msg['email']) . '?subject=' . rawurlencode($replySubject) . '&body=' . rawurlencode($replyBody);
-              ?>
-              
-              <div class="message-card <?php echo $isRead ? 'read' : 'unread'; ?>" data-status="<?php echo $isRead ? 'read' : 'unread'; ?>">
-                <div class="message-header">
-                  <div style="display: flex; gap: 14px; align-items: flex-start;">
-                    <div class="avatar-circle"><?php echo $initial; ?></div>
-                    <div>
-                      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <strong style="font-size: 1.15rem; color: var(--text);"><?php echo htmlspecialchars($msg['name']); ?></strong>
-                        <?php if (!$isRead): ?>
-                          <span style="background: #ef4444; color: #fff; padding: 2px 8px; font-size: 0.68rem; font-weight: 800; text-transform: uppercase;">
-                            <i class="fa-solid fa-sparkles"></i> Unread
-                          </span>
-                        <?php else: ?>
-                          <span style="background: rgba(15, 23, 42, 0.08); color: var(--muted); padding: 2px 8px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">
-                            Read
-                          </span>
-                        <?php endif; ?>
-                      </div>
-
-                      <div style="margin-top: 4px; font-size: 0.86rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                        <span><i class="fa-solid fa-envelope" style="color: var(--primary);"></i> <a href="mailto:<?php echo htmlspecialchars($msg['email']); ?>" style="color: var(--primary); text-decoration: underline;"><?php echo htmlspecialchars($msg['email']); ?></a></span>
-                        <?php if (!empty($msg['subject'])): ?>
-                          <span><i class="fa-solid fa-tag" style="color: var(--muted);"></i> <strong><?php echo htmlspecialchars($msg['subject']); ?></strong></span>
-                        <?php endif; ?>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Date & Action Buttons -->
-                  <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                    <span style="font-size: 0.76rem; color: var(--muted); font-family: monospace;">
-                      <i class="fa-regular fa-clock"></i> <?php echo htmlspecialchars($msg['created_at']); ?>
-                    </span>
-
-                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                      <a href="<?php echo $mailtoUrl; ?>" class="btn small primary" title="Reply to sender via Email">
-                        <i class="fa-solid fa-reply"></i> Reply
-                      </a>
-                      
+          <div class="table-wrap">
+            <table id="messages-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[5,"desc"]]'>
+              <thead>
+                <tr>
+                  <th>From</th>
+                  <th>Email</th>
+                  <th>Subject</th>
+                  <th>Message</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($messages as $msg):
+                  $isRead = !empty($msg['is_read']);
+                  $replySubject = 'Re: ' . ($msg['subject'] ?: 'Inquiry regarding Tanui Sila portfolio');
+                  $replyBody = "Hi " . ($msg['name'] ?? '') . ",\n\nThank you for reaching out.\n\nBest regards,\nTanui Sila";
+                  $mailtoUrl = 'mailto:' . rawurlencode($msg['email']) . '?subject=' . rawurlencode($replySubject) . '&body=' . rawurlencode($replyBody);
+                  $preview = (string)($msg['message'] ?? '');
+                  $dateTs = !empty($msg['created_at']) ? strtotime($msg['created_at']) : 0;
+                ?>
+                  <tr>
+                    <td><strong><?php echo htmlspecialchars($msg['name']); ?></strong></td>
+                    <td><a href="mailto:<?php echo htmlspecialchars($msg['email']); ?>" style="color:var(--primary);"><?php echo htmlspecialchars($msg['email']); ?></a></td>
+                    <td><?php echo htmlspecialchars($msg['subject'] ?: '—'); ?></td>
+                    <td><?php echo htmlspecialchars(strlen($preview) > 100 ? substr($preview, 0, 97) . '…' : $preview); ?></td>
+                    <td><span class="status-pill <?php echo $isRead ? 'read' : 'unread'; ?>"><?php echo $isRead ? 'Read' : 'Unread'; ?></span></td>
+                    <td data-order="<?php echo (int)$dateTs; ?>"><?php echo htmlspecialchars($msg['created_at']); ?></td>
+                    <td class="actions-cell">
+                      <a href="<?php echo htmlspecialchars($mailtoUrl); ?>" class="btn small primary" title="Reply"><i class="fa-solid fa-reply"></i></a>
                       <?php if (!$isRead): ?>
-                        <a href="messages.php?mark_read=<?php echo (int)$msg['id']; ?>" class="btn small" style="background: var(--bg); border: 1px solid var(--line);" title="Mark message as read">
-                          <i class="fa-solid fa-check"></i> Mark Read
-                        </a>
+                        <a href="messages.php?mark_read=<?php echo (int)$msg['id']; ?>" class="btn small" title="Mark read"><i class="fa-solid fa-check"></i></a>
                       <?php else: ?>
-                        <a href="messages.php?mark_unread=<?php echo (int)$msg['id']; ?>" class="btn small" style="background: var(--bg); border: 1px solid var(--line);" title="Mark message as unread">
-                          <i class="fa-solid fa-envelope"></i> Mark Unread
-                        </a>
+                        <a href="messages.php?mark_unread=<?php echo (int)$msg['id']; ?>" class="btn small" title="Mark unread"><i class="fa-solid fa-envelope"></i></a>
                       <?php endif; ?>
-
-                      <a href="messages.php?delete=<?php echo (int)$msg['id']; ?>" class="btn small danger" onclick="return confirm('Delete message from <?php echo htmlspecialchars($msg['name']); ?>?');" title="Delete message">
-                        <i class="fa-solid fa-trash"></i>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Message Text -->
-                <div class="message-body"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
-              </div>
-            <?php endforeach; ?>
+                      <a href="messages.php?delete=<?php echo (int)$msg['id']; ?>" class="btn small danger" onclick="return confirm('Delete message from <?php echo htmlspecialchars(addslashes($msg['name'])); ?>?');" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
           </div>
         <?php endif; ?>
 
@@ -395,33 +354,22 @@ foreach ($messages as $m) {
     </main>
   </div>
 
+  <?php adminDataTablesFooter(); ?>
   <script>
-    function filterMessages(status, btn) {
-      document.querySelectorAll('.filter-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      const cards = document.querySelectorAll('#messages-list .message-card');
-      cards.forEach(card => {
-        if (status === 'all' || card.dataset.status === status) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
+    (function () {
+      if (!window.jQuery || !jQuery.fn.DataTable) return;
+      var table = jQuery('#messages-table');
+      if (!table.length || !jQuery.fn.DataTable.isDataTable(table)) return;
+      var dt = table.DataTable();
+      document.querySelectorAll('[data-msg-filter]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.filter-tabs .tab-btn').forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          var val = btn.getAttribute('data-msg-filter') || 'all';
+          dt.column(4).search(val === 'all' ? '' : '^' + val + '$', true, false).draw();
+        });
       });
-    }
-
-    function searchMessages() {
-      const q = document.getElementById('search-messages').value.toLowerCase().trim();
-      const cards = document.querySelectorAll('#messages-list .message-card');
-      cards.forEach(card => {
-        const text = card.textContent.toLowerCase();
-        if (text.includes(q)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    }
+    })();
   </script>
 </body>
 </html>

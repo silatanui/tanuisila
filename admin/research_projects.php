@@ -168,7 +168,8 @@ if ($editingProject) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=1">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
   <div class="app-shell">
@@ -210,32 +211,57 @@ if ($editingProject) {
 
       <section class="panel">
         <h2>Saved research projects</h2>
-        <div class="list">
-          <?php foreach ($records as $item): ?>
-            <?php
-              $stack = json_decode((string) ($item['tech_stack_json'] ?? '[]'), true);
-              $stackText = is_array($stack) ? implode(', ', $stack) : '';
-            ?>
-            <div class="list-item">
-              <div>
-                <strong><?php echo htmlspecialchars($item['title']); ?></strong>
-                <small><?php echo htmlspecialchars($item['category']); ?> • <?php echo htmlspecialchars($item['year_label']); ?> • Source ID <?php echo (int) $item['source_id']; ?></small>
-                <small><?php echo htmlspecialchars($item['short_description']); ?></small>
-                <?php if ($stackText !== ''): ?><small>Stack: <?php echo htmlspecialchars($stackText); ?></small><?php endif; ?>
-              </div>
-              <div class="list-meta">
-                <span class="tag"><?php echo (int) $item['sort_order']; ?></span>
-                <span class="tag"><?php echo (int) $item['is_active'] === 1 ? 'Active' : 'Hidden'; ?></span>
-                <?php if (!empty($item['demo_url']) && $item['demo_url'] !== '#'): ?><a class="btn" href="<?php echo htmlspecialchars($item['demo_url']); ?>" target="_blank">Demo</a><?php endif; ?>
-                <?php if (!empty($item['github_url']) && $item['github_url'] !== '#'): ?><a class="btn" href="<?php echo htmlspecialchars($item['github_url']); ?>" target="_blank">GitHub</a><?php endif; ?>
-                <a class="btn" href="?edit=<?php echo (int) $item['id']; ?>">Edit</a>
-                <a class="btn danger" href="?delete=research_projects&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this research project?');">Delete</a>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        </div>
+        <?php if (empty($records)): ?>
+          <p class="muted-copy">No research projects saved yet.</p>
+        <?php else: ?>
+          <div class="table-wrap">
+            <table id="research-projects-table" class="data-table display" style="width:100%" data-page-length="10">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Year</th>
+                  <th>Stack</th>
+                  <th>Status</th>
+                  <th>Sort</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($records as $item): ?>
+                  <?php
+                    $stack = json_decode((string) ($item['tech_stack_json'] ?? '[]'), true);
+                    $stackText = is_array($stack) ? implode(', ', $stack) : '';
+                    $isActive = (int) $item['is_active'] === 1;
+                  ?>
+                  <tr>
+                    <td>
+                      <strong><?php echo htmlspecialchars($item['title']); ?></strong>
+                      <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;"><?php
+                        $sd = (string)$item['short_description'];
+                        echo htmlspecialchars(strlen($sd) > 100 ? substr($sd, 0, 97) . '…' : $sd);
+                      ?></div>
+                    </td>
+                    <td><?php echo htmlspecialchars($item['category']); ?></td>
+                    <td><?php echo htmlspecialchars($item['year_label']); ?></td>
+                    <td><?php echo htmlspecialchars($stackText ?: '—'); ?></td>
+                    <td><span class="status-pill <?php echo $isActive ? 'active' : 'hidden'; ?>"><?php echo $isActive ? 'Active' : 'Hidden'; ?></span></td>
+                    <td data-order="<?php echo (int) $item['sort_order']; ?>"><?php echo (int) $item['sort_order']; ?></td>
+                    <td class="actions-cell">
+                      <?php if (!empty($item['demo_url']) && $item['demo_url'] !== '#'): ?><a class="btn small" href="<?php echo htmlspecialchars($item['demo_url']); ?>" target="_blank" rel="noopener">Demo</a><?php endif; ?>
+                      <?php if (!empty($item['github_url']) && $item['github_url'] !== '#'): ?><a class="btn small" href="<?php echo htmlspecialchars($item['github_url']); ?>" target="_blank" rel="noopener">GitHub</a><?php endif; ?>
+                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>">Edit</a>
+                      <a class="btn danger small" href="?delete=research_projects&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this research project?');">Delete</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
       </section>
     </main>
   </div>
+  <?php adminDataTablesFooter(); ?>
 </body>
 </html>
