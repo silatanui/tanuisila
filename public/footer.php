@@ -10,7 +10,7 @@
           <div style="display: flex; align-items: center; gap: 12px;">
             <img src="<?php echo htmlspecialchars(appUrl($logoFile)); ?>" alt="Branding Logo" class="footer-logo" style="width: 40px; height: 40px; object-fit: contain; padding: 4px; background: #fff; border: 1px solid var(--light-gray);">
             <div style="line-height: 1.2;">
-              <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text); letter-spacing: -0.04em;"><?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?></h4>
+              <h4 class="brand-name" style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text); letter-spacing: -0.04em;"><?php echo htmlspecialchars($settings['site_title'] ?? $profile['full_name']); ?></h4>
               <small style="color: var(--muted); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Computer Scientist</small>
             </div>
           </div>

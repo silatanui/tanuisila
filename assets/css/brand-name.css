@@ -1,0 +1,76 @@
+/*
+  Brand name — Instagram Sans–style geometric display.
+  Loads Figtree (free) for the soft “squircle” grotesque look.
+  If you add licensed Instagram Sans files under /assets/fonts/, those take priority.
+*/
+@font-face {
+  font-family: 'Instagram Sans';
+  src:
+    local('Instagram Sans'),
+    url('../fonts/InstagramSans-Regular.woff2') format('woff2'),
+    url('../fonts/InstagramSans-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  src:
+    local('Instagram Sans Medium'),
+    url('../fonts/InstagramSans-Medium.woff2') format('woff2'),
+    url('../fonts/InstagramSans-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  src:
+    local('Instagram Sans Bold'),
+    local('Instagram Sans Headline'),
+    url('../fonts/InstagramSans-Bold.woff2') format('woff2'),
+    url('../fonts/InstagramSans-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  src:
+    local('Instagram Sans Bold'),
+    local('Instagram Sans Headline'),
+    url('../fonts/InstagramSans-Bold.woff2') format('woff2'),
+    url('../fonts/InstagramSans-Bold.woff') format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Figtree first (loaded via Google Fonts). Instagram Sans only if local files exist. */
+  --font-brand-name: 'Figtree', 'Nunito', 'Instagram Sans', 'Outfit', sans-serif;
+}
+
+.brand-name,
+.sh__name,
+.hp-brand-line,
+.hp-hero__brand {
+  font-family: var(--font-brand-name);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+.sh__name {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.hp-brand-line,
+.hp-hero__brand {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}

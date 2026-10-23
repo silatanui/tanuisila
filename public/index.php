@@ -404,6 +404,7 @@ try {
 
 .hp-brand-line {
   display: block;
+  font-family: var(--font-brand-name);
   opacity: 0;
   transform: translateY(20px);
   animation: hp-slide-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;

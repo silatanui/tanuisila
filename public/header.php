@@ -146,10 +146,11 @@ if (!isset($activePage)) {
   <meta property="og:description" content="<?php echo htmlspecialchars($profile['summary'] ?: $profile['bio']); ?>">
   <meta property="og:image" content="<?php echo appUrl('public/logo_with_bg.jpg'); ?>?v=<?php echo @filemtime(__DIR__ . '/logo_with_bg.jpg'); ?>">
   <meta name="theme-color" content="#ffffff">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Figtree:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?php echo appUrl('assets/css/styles.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/styles.css'); ?>">
   <link rel="stylesheet" href="<?php echo appUrl('assets/css/extras.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/extras.css'); ?>">
   <link rel="stylesheet" href="<?php echo appUrl('assets/css/print.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/print.css'); ?>" media="print">
+  <link rel="stylesheet" href="<?php echo appUrl('assets/css/brand-name.css'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/css/brand-name.css'); ?>">
   <link rel="alternate" type="application/rss+xml" title="Blog RSS" href="<?php echo appUrl('feed.php'); ?>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" crossorigin="anonymous">
   <style>
@@ -337,6 +338,7 @@ if (!isset($activePage)) {
       letter-spacing: -0.04em;
       color: var(--text);
       line-height: 1.1;
+      font-family: var(--font-brand-name);
     }
     .sh__role {
       margin: 3px 0 0;
