@@ -107,12 +107,14 @@ $postTags = !empty($post['tags'])
   ? array_values(array_filter(array_map('trim', explode(',', $post['tags']))))
   : [];
 
-$heroImage = !empty($post['featured_image']) ? portfolioAssetUrl($post['featured_image']) : '';
 $authorInitial = strtoupper(substr($post['author_name'] ?? 'T', 0, 1));
-$authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jpg') : '';
 $publishedLabel = !empty($post['published_at']) ? date('F j, Y', strtotime($post['published_at'])) : '';
 
 require_once __DIR__ . '/header.php';
+
+// URL helpers live in header.php — resolve after include
+$heroImage = !empty($post['featured_image']) ? portfolioAssetUrl($post['featured_image']) : '';
+$authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jpg') : '';
 ?>
 
 <main id="main-content" class="bp-shell">
