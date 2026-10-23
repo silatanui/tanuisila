@@ -4,6 +4,11 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/sidebar.php';
 require_once __DIR__ . '/topbar.php';
 
+// Never cache admin editor pages (fixes stale content when clicking Edit)
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit;
@@ -13,17 +18,6 @@ $notice = '';
 $error = '';
 $editingPost = null;
 $editId = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
-
-// Load post for editing if ID provided
-if ($editId > 0) {
-    $stmt = $pdo->prepare('SELECT * FROM blog_posts WHERE id = ?');
-    $stmt->execute([$editId]);
-    $editingPost = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$editingPost) {
-        $error = 'Blog post not found.';
-        $editId = 0;
-    }
-}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_blog') {
     try {
@@ -56,20 +50,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
         }
 
         if ($postId > 0) {
-            // UPDATE existing post
-            $stmt = $pdo->prepare('UPDATE blog_posts SET title=?, slug=?, excerpt=?, content=?, featured_image=?, category=?, tags=?, author_name=?, status=?, reading_time=?, published_at=?, seo_title=?, seo_description=?, allow_comments=? WHERE id=?');
+            $stmt = $pdo->prepare('UPDATE blog_posts SET title=?, slug=?, excerpt=?, content=?, featured_image=?, category=?, tags=?, author_name=?, status=?, reading_time=?, published_at=?, seo_title=?, seo_description=?, allow_comments=?, updated_at=NOW() WHERE id=?');
             $stmt->execute([$title, $slug, $excerpt, $content, $featured_image, $category, $tags, $author_name, $status, $reading_time, $published_at, $seo_title, $seo_description, $allow_comments, $postId]);
-            $notice = 'Blog post updated successfully.';
-            $editId = 0;
-            $editingPost = null;
-        } else {
-            // INSERT new post
-            $stmt = $pdo->prepare('INSERT INTO blog_posts (title, slug, excerpt, content, featured_image, category, tags, author_name, status, reading_time, published_at, seo_title, seo_description, allow_comments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$title, $slug, $excerpt, $content, $featured_image, $category, $tags, $author_name, $status, $reading_time, $published_at, $seo_title, $seo_description, $allow_comments]);
-            $notice = 'Blog post created successfully.';
+            // PRG: reload fresh edit form so TinyMCE always gets DB content
+            header('Location: blog.php?edit=' . $postId . '&saved=1#post-editor-panel');
+            exit;
         }
+
+        $stmt = $pdo->prepare('INSERT INTO blog_posts (title, slug, excerpt, content, featured_image, category, tags, author_name, status, reading_time, published_at, seo_title, seo_description, allow_comments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$title, $slug, $excerpt, $content, $featured_image, $category, $tags, $author_name, $status, $reading_time, $published_at, $seo_title, $seo_description, $allow_comments]);
+        $newId = (int)$pdo->lastInsertId();
+        header('Location: blog.php?edit=' . $newId . '&saved=1#post-editor-panel');
+        exit;
     } catch (Throwable $e) {
         $error = 'Unable to save blog post. ' . $e->getMessage();
+        if (!empty($_POST['post_id'])) {
+            $editId = (int)$_POST['post_id'];
+        }
     }
 }
 
@@ -77,7 +74,26 @@ if (isset($_GET['delete']) && $_GET['delete'] === 'blog_posts') {
     $id = (int) ($_GET['id'] ?? 0);
     if ($id > 0) {
         $pdo->prepare('DELETE FROM blog_posts WHERE id = ?')->execute([$id]);
-        $notice = 'Blog post removed.';
+    }
+    header('Location: blog.php?deleted=1');
+    exit;
+}
+
+if (isset($_GET['saved'])) {
+    $notice = 'Blog post saved successfully. Content below is loaded fresh from the database.';
+}
+if (isset($_GET['deleted'])) {
+    $notice = 'Blog post removed.';
+}
+
+// Load post for editing AFTER writes (always fresh from DB)
+if ($editId > 0) {
+    $stmt = $pdo->prepare('SELECT * FROM blog_posts WHERE id = ?');
+    $stmt->execute([$editId]);
+    $editingPost = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$editingPost) {
+        $error = 'Blog post not found.';
+        $editId = 0;
     }
 }
 
@@ -95,13 +111,21 @@ $posts = $pdo->query('
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Blog Posts - Admin</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <link rel="icon" type="image/jpeg" href="../Tanui-Sila-Logo-v3.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=1">
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js" referrerpolicy="origin"></script>
+  <script>
+    // Fresh DB content for TinyMCE (avoids stale / empty editor on Edit)
+    window.__BLOG_EDIT_CONTENT = <?php echo json_encode($editingPost['content'] ?? '', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE); ?>;
+    window.__BLOG_IS_EDITING = <?php echo $editingPost ? 'true' : 'false'; ?>;
+  </script>
   <style>
     /* Enforce Outfit font across entire admin page and TinyMCE container */
     body, button, input, select, textarea {
@@ -125,6 +149,83 @@ $posts = $pdo->query('
       font-size: 15px !important;
       color: #94a3b8 !important;
     }
+
+    .editor-wrap {
+      position: relative;
+      min-height: 120px;
+    }
+    .editor-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 16px;
+      border: 1px dashed var(--line);
+      background: var(--soft-bg, #f8fafc);
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .editor-loading.is-hidden { display: none; }
+    .editor-loading i { color: var(--primary); }
+
+    /* DataTables — match admin theme */
+    .dataTables_wrapper {
+      font-family: 'Outfit', sans-serif !important;
+      padding-top: 4px;
+    }
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+      border: 1px solid var(--line);
+      padding: 8px 12px;
+      margin-left: 8px;
+      font-family: 'Outfit', sans-serif;
+      min-width: 200px;
+    }
+    .dataTables_wrapper .dataTables_length select {
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+      font-family: 'Outfit', sans-serif;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+      border: 1px solid var(--line) !important;
+      background: #fff !important;
+      color: var(--text) !important;
+      padding: 4px 10px !important;
+      margin: 0 2px !important;
+      border-radius: 0 !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+      background: var(--primary) !important;
+      border-color: var(--primary) !important;
+      color: #fff !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+      opacity: 0.4;
+    }
+    #blog-posts-table {
+      width: 100% !important;
+    }
+    #blog-posts-table td.actions-cell {
+      white-space: nowrap;
+    }
+    #blog-posts-table .status-pill {
+      text-transform: uppercase;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+    }
+    #blog-posts-table .status-pill.published { color: var(--success, #059669); }
+    #blog-posts-table .status-pill.draft { color: var(--muted); }
+    #blog-posts-table .status-pill.archived { color: #64748b; }
 
     .ai-hero-box {
       background: linear-gradient(135deg, rgba(234, 88, 12, 0.07) 0%, rgba(15, 23, 42, 0.03) 100%);
@@ -274,7 +375,13 @@ $posts = $pdo->query('
                   </button>
                 </div>
               </div>
-              <textarea id="blog-content-editor" name="content" placeholder="Write or paste your full article here..."><?php echo htmlspecialchars($editingPost['content'] ?? ''); ?></textarea>
+              <div class="editor-wrap">
+                <div id="editor-loading" class="editor-loading">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <?php echo $editingPost ? 'Loading post content into editor…' : 'Starting rich text editor…'; ?>
+                </div>
+                <textarea id="blog-content-editor" name="content" placeholder="Write or paste your full article here..."><?php echo htmlspecialchars($editingPost['content'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+              </div>
             </div>
 
             <!-- 2. Title & Slug -->
@@ -434,65 +541,80 @@ $posts = $pdo->query('
       <section class="panel">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line);">
           <h2 style="margin: 0;"><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> All Blog Posts (<?php echo count($posts); ?>)</h2>
-          <a href="#post-editor-panel" class="btn small" style="background: var(--primary); color: #fff; border-color: var(--primary);">
+          <a href="blog.php#post-editor-panel" class="btn small" style="background: var(--primary); color: #fff; border-color: var(--primary);">
             <i class="fa-solid fa-plus"></i> New Post
           </a>
         </div>
 
-        <div class="list">
-          <?php if (empty($posts)): ?>
-            <div style="padding: 40px; text-align: center; color: var(--muted);">
-              <i class="fa-regular fa-newspaper" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
-              <p style="margin: 0; font-size: 1rem; font-weight: 600;">No blog posts yet. Write your first article above!</p>
-            </div>
-          <?php else: ?>
-            <?php foreach ($posts as $post): ?>
-              <div class="list-item">
-                <div style="flex: 1;">
-                  <strong style="font-size: 1.05rem; display: block; margin-bottom: 4px;">
-                    <?php echo htmlspecialchars($post['title']); ?>
-                  </strong>
-                  <div style="font-size: 0.82rem; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 6px;">
-                    <span style="text-transform: uppercase; font-weight: 700; color: <?php echo $post['status'] === 'published' ? 'var(--success)' : 'var(--muted)'; ?>;">
-                      ● <?php echo htmlspecialchars($post['status']); ?>
-                    </span>
-                    <span>•</span>
-                    <span><?php echo !empty($post['published_at']) ? date('M d, Y', strtotime($post['published_at'])) : 'Unpublished'; ?></span>
-                    <?php if (!empty($post['reading_time'])): ?>
-                      <span>•</span>
-                      <span><i class="fa-regular fa-clock"></i> <?php echo (int)$post['reading_time']; ?> min read</span>
-                    <?php endif; ?>
-                  </div>
-                  <?php if (!empty($post['excerpt'])): ?>
-                    <p style="margin: 0; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.4;">
-                      <?php echo htmlspecialchars(substr($post['excerpt'], 0, 160)) . (strlen($post['excerpt']) > 160 ? '...' : ''); ?>
-                    </p>
-                  <?php endif; ?>
-                </div>
-
-                <div class="list-meta" style="align-items: center; gap: 8px;">
-                  <span class="tag" style="background: var(--soft-bg); border: 1px solid var(--line); font-weight: 700;">
-                    <?php echo htmlspecialchars($post['category'] ?? 'General'); ?>
-                  </span>
-                  
-                  <a href="comments.php?post_id=<?php echo (int)$post['id']; ?>" class="tag" style="text-decoration: none; color: var(--text); border: 1px solid var(--line); background: var(--soft-bg);" title="View comments for this post">
-                    <i class="fa-solid fa-comments" style="color: var(--primary);"></i> <?php echo (int)($post['total_comments'] ?? 0); ?>
-                    <?php if (!empty($post['pending_comments'])): ?>
-                      <span style="color: var(--warning); font-weight: 800;">(<?php echo (int)$post['pending_comments']; ?> pending)</span>
-                    <?php endif; ?>
-                  </a>
-
-                  <a class="btn" href="?edit=<?php echo (int) $post['id']; ?>#post-editor-panel" title="Edit post"><i class="fa-solid fa-pen"></i> Edit</a>
-                  <a class="btn danger" href="?delete=blog_posts&id=<?php echo (int) $post['id']; ?>" onclick="return confirm('Delete post &quot;<?php echo htmlspecialchars(addslashes($post['title'])); ?>&quot; permanently?');" title="Delete post"><i class="fa-solid fa-trash"></i></a>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
+        <?php if (empty($posts)): ?>
+          <div style="padding: 40px; text-align: center; color: var(--muted);">
+            <i class="fa-regular fa-newspaper" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+            <p style="margin: 0; font-size: 1rem; font-weight: 600;">No blog posts yet. Write your first article above!</p>
+          </div>
+        <?php else: ?>
+          <div style="overflow-x: auto;">
+            <table id="blog-posts-table" class="data-table display" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Category</th>
+                  <th>Published</th>
+                  <th>Comments</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($posts as $post):
+                  $editUrl = 'blog.php?edit=' . (int)$post['id'] . '&v=' . time() . '#post-editor-panel';
+                  $statusClass = htmlspecialchars($post['status'] ?? 'draft');
+                ?>
+                  <tr>
+                    <td>
+                      <strong><?php echo htmlspecialchars($post['title']); ?></strong>
+                      <?php if (!empty($post['excerpt'])): ?>
+                        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px; max-width: 360px;">
+                          <?php echo htmlspecialchars(substr($post['excerpt'], 0, 100)) . (strlen($post['excerpt']) > 100 ? '…' : ''); ?>
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                    <td>
+                      <span class="status-pill <?php echo $statusClass; ?>">● <?php echo htmlspecialchars($post['status']); ?></span>
+                      <?php if (!empty($post['reading_time'])): ?>
+                        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+                          <i class="fa-regular fa-clock"></i> <?php echo (int)$post['reading_time']; ?> min
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                    <td><?php echo htmlspecialchars($post['category'] ?? 'General'); ?></td>
+                    <td data-order="<?php echo !empty($post['published_at']) ? strtotime($post['published_at']) : 0; ?>">
+                      <?php echo !empty($post['published_at']) ? date('M d, Y', strtotime($post['published_at'])) : '—'; ?>
+                    </td>
+                    <td data-order="<?php echo (int)($post['total_comments'] ?? 0); ?>">
+                      <a href="comments.php?post_id=<?php echo (int)$post['id']; ?>" style="text-decoration: none; color: var(--text); font-weight: 600;">
+                        <i class="fa-solid fa-comments" style="color: var(--primary);"></i>
+                        <?php echo (int)($post['total_comments'] ?? 0); ?>
+                        <?php if (!empty($post['pending_comments'])): ?>
+                          <span style="color: var(--warning); font-weight: 800;">(<?php echo (int)$post['pending_comments']; ?>)</span>
+                        <?php endif; ?>
+                      </a>
+                    </td>
+                    <td class="actions-cell">
+                      <a class="btn small" href="<?php echo htmlspecialchars($editUrl); ?>" title="Edit post"><i class="fa-solid fa-pen"></i> Edit</a>
+                      <a class="btn small danger" href="?delete=blog_posts&id=<?php echo (int) $post['id']; ?>" onclick="return confirm('Delete post &quot;<?php echo htmlspecialchars(addslashes($post['title'])); ?>&quot; permanently?');" title="Delete post"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
       </section>
     </main>
   </div>
 
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
   <script>
     const statusDiv = document.getElementById('ai-status');
 
@@ -770,7 +892,16 @@ $posts = $pdo->query('
       disableAllAI(false);
     }
 
-    // Initialize TinyMCE Rich Text Editor with Outfit Font
+    function hideEditorLoading() {
+      const loader = document.getElementById('editor-loading');
+      if (loader) loader.classList.add('is-hidden');
+    }
+
+    // Tear down any leftover instance, then init with fresh DB content
+    if (typeof tinymce !== 'undefined' && tinymce.get('blog-content-editor')) {
+      tinymce.get('blog-content-editor').remove();
+    }
+
     tinymce.init({
       selector: '#blog-content-editor',
       plugins: 'image link lists table code preview fullscreen autolink media',
@@ -780,6 +911,7 @@ $posts = $pdo->query('
       font_size_formats: '10px 12px 14px 15px 16px 18px 20px 22px 24px 28px 32px 36px 48px',
       height: 480,
       branding: false,
+      cache_suffix: '?v=' + Date.now(),
       content_css: [
         'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap'
       ],
@@ -906,11 +1038,30 @@ $posts = $pdo->query('
         }
       `,
       setup: function(editor) {
-        editor.on('init change input keyup blur NodeChange SetContent', function() {
+        editor.on('init', function() {
+          const fresh = typeof window.__BLOG_EDIT_CONTENT === 'string' ? window.__BLOG_EDIT_CONTENT : '';
+          if (fresh) {
+            editor.setContent(fresh);
+          } else {
+            const ta = document.getElementById('blog-content-editor');
+            if (ta && ta.value) {
+              editor.setContent(ta.value);
+            }
+          }
+          tinymce.triggerSave();
+          hideEditorLoading();
+        });
+        editor.on('change input keyup blur NodeChange SetContent', function() {
           tinymce.triggerSave();
         });
+      },
+      init_instance_callback: function() {
+        hideEditorLoading();
       }
     });
+
+    // Safety: hide loader if TinyMCE is slow / blocked
+    setTimeout(hideEditorLoading, 8000);
 
     // Explicit Form Submission Validation & Sync
     document.getElementById('blog-form').addEventListener('submit', function(e) {
@@ -937,6 +1088,34 @@ $posts = $pdo->query('
         return false;
       }
     });
+
+    // DataTables for posts list
+    if (window.jQuery && $('#blog-posts-table').length) {
+      $('#blog-posts-table').DataTable({
+        order: [[3, 'desc']],
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50],
+        columnDefs: [
+          { orderable: false, targets: 5 }
+        ],
+        language: {
+          search: 'Search posts:',
+          lengthMenu: 'Show _MENU_ posts',
+          info: 'Showing _START_–_END_ of _TOTAL_ posts',
+          emptyTable: 'No blog posts yet'
+        }
+      });
+    }
+
+    // Scroll to editor when editing / after save
+    if (window.__BLOG_IS_EDITING || window.location.hash === '#post-editor-panel') {
+      const panel = document.getElementById('post-editor-panel');
+      if (panel) {
+        setTimeout(function() {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      }
+    }
   </script>
 </body>
 </html>

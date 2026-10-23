@@ -2,6 +2,10 @@
 $activePage = 'blog';
 require_once __DIR__ . '/../config/config.php';
 
+// Prefer fresh content after admin edits (avoid stale CDN/browser cache)
+header('Cache-Control: private, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 // Get post slug from URL
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
