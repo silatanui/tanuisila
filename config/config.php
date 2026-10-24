@@ -207,6 +207,21 @@ function ensurePortfolioSchema(PDO $pdo): void {
         )
     ");
 
+    // One row per unique visitor per calendar day (site-wide analytics)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `site_daily_visitors` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `visit_date` DATE NOT NULL,
+            `visitor_hash` VARCHAR(64) NOT NULL,
+            `ip_address` VARCHAR(45) DEFAULT NULL,
+            `user_agent` VARCHAR(255) DEFAULT NULL,
+            `landing_path` VARCHAR(255) DEFAULT NULL,
+            `first_seen` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `uniq_day_visitor` (`visit_date`, `visitor_hash`),
+            KEY `idx_visit_date` (`visit_date`)
+        )
+    ");
+
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `settings` (
             `setting_key` VARCHAR(150) PRIMARY KEY,

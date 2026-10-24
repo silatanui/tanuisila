@@ -2,7 +2,9 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/education.php';
 require_once __DIR__ . '/../includes/media.php';
+require_once __DIR__ . '/../includes/analytics.php';
 ensureEducationDetails($pdo);
+trackSiteUniqueVisit($pdo);
 
 $preferredLogos = [
   'Tanui-Sila-Logo-v3.png',

@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/analytics.php';
 require_once __DIR__ . '/sidebar.php';
 require_once __DIR__ . '/topbar.php';
 
@@ -12,218 +13,95 @@ if (empty($_SESSION['admin_logged_in'])) {
 $notice = '';
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-
-    try {
-        switch ($action) {
-            case 'save_profile':
-                $full_name = trim($_POST['full_name'] ?? 'Your Name');
-                $headline = trim($_POST['headline'] ?? '');
-                $bio = trim($_POST['bio'] ?? '');
-                $email = trim($_POST['email'] ?? '');
-                $phone = trim($_POST['phone'] ?? '');
-                $location = trim($_POST['location'] ?? '');
-                $website = trim($_POST['website'] ?? '');
-                $linkedin = trim($_POST['linkedin'] ?? '');
-                $github = trim($_POST['github'] ?? '');
-                $summary = trim($_POST['summary'] ?? '');
-
-                $stmt = $pdo->prepare(
-                    'INSERT INTO profile (id, full_name, headline, bio, email, phone, location, website, linkedin, github, summary) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), headline = VALUES(headline), bio = VALUES(bio), email = VALUES(email), phone = VALUES(phone), location = VALUES(location), website = VALUES(website), linkedin = VALUES(linkedin), github = VALUES(github), summary = VALUES(summary)'
-                );
-                $stmt->execute([$full_name, $headline, $bio, $email, $phone, $location, $website, $linkedin, $github, $summary]);
-                $notice = 'Personal details saved successfully.';
-                break;
-
-            case 'save_settings':
-                $settings = [
-                    'site_title' => trim($_POST['site_title'] ?? 'Your Name'),
-                    'tagline' => trim($_POST['tagline'] ?? 'Developer • Designer • Creator'),
-                    'hero_text' => trim($_POST['hero_text'] ?? ''),
-                    'show_blog' => (string)($_POST['show_blog'] ?? '1'),
-                    'theme' => trim($_POST['theme'] ?? 'light'),
-                ];
-
-                $stmt = $pdo->prepare('INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-                foreach ($settings as $key => $value) {
-                    $stmt->execute([$key, $value]);
-                }
-                $notice = 'Portfolio settings saved successfully.';
-                break;
-
-            case 'save_education':
-                $institution = trim($_POST['institution'] ?? '');
-                $degree = trim($_POST['degree'] ?? '');
-                $field = trim($_POST['field'] ?? '');
-                $start_year = trim($_POST['start_year'] ?? '');
-                $end_year = trim($_POST['end_year'] ?? '');
-                $description = trim($_POST['education_description'] ?? '');
-                $sort_order = (int)($_POST['sort_order'] ?? 0);
-
-                $stmt = $pdo->prepare('INSERT INTO education (institution, degree, field_name, start_year, end_year, description, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$institution, $degree, $field, $start_year, $end_year, $description, $sort_order]);
-                $notice = 'Education entry added successfully.';
-                break;
-
-            case 'save_experience':
-                $company = trim($_POST['company'] ?? '');
-                $role = trim($_POST['role'] ?? '');
-                $location = trim($_POST['experience_location'] ?? '');
-                $start_date = trim($_POST['start_date'] ?? '');
-                $end_date = trim($_POST['end_date'] ?? '');
-                $description = trim($_POST['experience_description'] ?? '');
-                $sort_order = (int)($_POST['experience_sort_order'] ?? 0);
-
-                $stmt = $pdo->prepare('INSERT INTO experience (company, role_name, location, start_date, end_date, description, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$company, $role, $location, $start_date, $end_date, $description, $sort_order]);
-                $notice = 'Work experience entry added successfully.';
-                break;
-
-            case 'save_publication':
-                $title = trim($_POST['publication_title'] ?? '');
-                $venue = trim($_POST['publication_venue'] ?? '');
-                $year = trim($_POST['publication_year'] ?? '');
-                $url = trim($_POST['publication_url'] ?? '');
-                $summary = trim($_POST['publication_summary'] ?? '');
-                $sort_order = (int)($_POST['publication_sort_order'] ?? 0);
-
-                $stmt = $pdo->prepare('INSERT INTO publications (title, venue, publication_year, url, summary, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$title, $venue, $year, $url, $summary, $sort_order]);
-                $notice = 'Publication added successfully.';
-                break;
-
-            case 'save_blog':
-                $title = trim($_POST['blog_title'] ?? '');
-                $slug = trim($_POST['blog_slug'] ?? '');
-                $excerpt = trim($_POST['blog_excerpt'] ?? '');
-                $content = trim($_POST['blog_content'] ?? '');
-                $status = $_POST['blog_status'] ?? 'draft';
-                $published_at = trim($_POST['published_at'] ?? date('Y-m-d H:i:s'));
-                $sort_order = (int)($_POST['blog_sort_order'] ?? 0);
-
-                if ($slug === '') {
-                    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title));
-                    $slug = trim($slug, '-');
-                }
-
-                $stmt = $pdo->prepare('INSERT INTO blog_posts (title, slug, excerpt, content, status, published_at, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$title, $slug, $excerpt, $content, $status, $published_at, $sort_order]);
-                $notice = 'Blog post saved successfully.';
-                break;
-
-            case 'save_project':
-                $title = trim($_POST['project_title'] ?? '');
-                $description = trim($_POST['project_description'] ?? '');
-                $url = trim($_POST['project_url'] ?? '');
-                $sort_order = (int)($_POST['project_sort_order'] ?? 0);
-
-                $stmt = $pdo->prepare('INSERT INTO projects (title, description, url, sort_order) VALUES (?, ?, ?, ?)');
-                $stmt->execute([$title, $description, $url, $sort_order]);
-                $notice = 'Project added successfully.';
-                break;
-
-            case 'upload_logo':
-                if (!empty($_FILES['logo_file']) && $_FILES['logo_file']['error'] === UPLOAD_ERR_OK) {
-                    $tmp = $_FILES['logo_file']['tmp_name'];
-                    $name = basename($_FILES['logo_file']['name']);
-                    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                    $allowed = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-
-                    if (!in_array($ext, $allowed, true)) {
-                        throw new RuntimeException('Invalid file type. Please upload PNG, JPG, GIF, or WEBP.');
-                    }
-
-                    $target = __DIR__ . '/../Tanui-Sila-Logo.' . $ext;
-                    if (!move_uploaded_file($tmp, $target)) {
-                        throw new RuntimeException('Failed to move uploaded file.');
-                    }
-
-                    $notice = 'Logo uploaded successfully.';
-                } else {
-                    throw new RuntimeException('No file uploaded.');
-                }
-                break;
-
-            default:
-                throw new RuntimeException('Unsupported action.');
-        }
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-    }
-}
-
-if (isset($_GET['delete'])) {
-    $entity = $_GET['delete'];
-    $id = (int)($_GET['id'] ?? 0);
-
-    if ($id > 0) {
-        try {
-            $allowed = ['education', 'experience', 'publications', 'blog_posts', 'projects'];
-            if (in_array($entity, $allowed, true)) {
-                $stmt = $pdo->prepare('DELETE FROM ' . $entity . ' WHERE id = ?');
-                $stmt->execute([$id]);
-                $notice = 'Entry deleted successfully.';
-            }
-        } catch (Throwable $e) {
-            $error = 'Unable to delete this entry.';
-        }
-    }
-}
-
-$profile = [
-    'full_name' => 'Your Name',
-    'headline' => 'Developer • Designer • Creator',
-    'bio' => '',
-    'email' => '',
-    'phone' => '',
-    'location' => '',
-    'website' => '',
-    'linkedin' => '',
-    'github' => '',
-    'summary' => '',
+// Counts
+$counts = [
+    'education' => 0,
+    'experience' => 0,
+    'publications' => 0,
+    'projects' => 0,
+    'blog_published' => 0,
+    'blog_draft' => 0,
+    'blog_all' => 0,
+    'comments_total' => 0,
+    'comments_pending' => 0,
+    'messages_total' => 0,
+    'messages_unread' => 0,
+    'blog_views_total' => 0,
 ];
 
 try {
-    $row = $pdo->query('SELECT * FROM profile WHERE id = 1')->fetch(PDO::FETCH_ASSOC);
-    if ($row) {
-        $profile = $row;
-    }
+    $counts['education'] = (int) $pdo->query('SELECT COUNT(*) FROM education')->fetchColumn();
+    $counts['experience'] = (int) $pdo->query('SELECT COUNT(*) FROM experience')->fetchColumn();
+    $counts['publications'] = (int) $pdo->query('SELECT COUNT(*) FROM publications')->fetchColumn();
+    $counts['projects'] = (int) $pdo->query('SELECT COUNT(*) FROM projects')->fetchColumn();
+    $counts['blog_all'] = (int) $pdo->query('SELECT COUNT(*) FROM blog_posts')->fetchColumn();
+    $counts['blog_published'] = (int) $pdo->query("SELECT COUNT(*) FROM blog_posts WHERE status = 'published'")->fetchColumn();
+    $counts['blog_draft'] = (int) $pdo->query("SELECT COUNT(*) FROM blog_posts WHERE status = 'draft'")->fetchColumn();
+    $counts['comments_total'] = (int) $pdo->query('SELECT COUNT(*) FROM blog_comments')->fetchColumn();
+    $counts['comments_pending'] = (int) $pdo->query("SELECT COUNT(*) FROM blog_comments WHERE status = 'pending'")->fetchColumn();
+    $counts['messages_total'] = (int) $pdo->query('SELECT COUNT(*) FROM messages')->fetchColumn();
+    $counts['messages_unread'] = (int) $pdo->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
+    $counts['blog_views_total'] = (int) $pdo->query('SELECT COALESCE(SUM(views), 0) FROM blog_posts')->fetchColumn();
 } catch (Throwable $e) {
-    $profile = $profile;
+    $error = 'Some dashboard stats could not be loaded.';
 }
 
-$settings = [
-    'site_title' => 'Your Name',
-    'tagline' => 'Developer • Designer • Creator',
-    'hero_text' => '',
-    'show_blog' => '1',
-    'theme' => 'light',
-];
+$today = date('Y-m-d');
+$yesterday = date('Y-m-d', strtotime('-1 day'));
+$weekAgo = date('Y-m-d', strtotime('-6 days'));
+$monthAgo = date('Y-m-d', strtotime('-29 days'));
 
-try {
-    foreach ($pdo->query('SELECT setting_key, setting_value FROM settings') as $row) {
-        $settings[$row['setting_key']] = $row['setting_value'];
-    }
-} catch (Throwable $e) {
-    $settings = $settings;
-}
+$uniqueToday = analyticsCountUniqueOn($pdo, $today);
+$uniqueYesterday = analyticsCountUniqueOn($pdo, $yesterday);
+$unique7 = analyticsCountUniqueSince($pdo, $weekAgo);
+$unique30 = analyticsCountUniqueSince($pdo, $monthAgo);
 
-$projects = $pdo->query('SELECT * FROM projects ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
-$education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
-$experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
-$publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
-$blog_posts = $pdo->query('SELECT * FROM blog_posts ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
-$messages = [];
-$unreadMessagesCount = 0;
-$totalCommentsCount = 0;
-$pendingCommentsCount = 0;
+$visitorSeries = analyticsDailyUniqueSeries($pdo, 30);
+$blogReaderSeries = analyticsDailyBlogReadersSeries($pdo, 30);
+
+$topPosts = [];
 try {
-    $messages = $pdo->query('SELECT * FROM messages ORDER BY id DESC')->fetchAll(PDO::FETCH_ASSOC);
-    $unreadMessagesCount = (int)$pdo->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
-    $totalCommentsCount = (int)$pdo->query('SELECT COUNT(*) FROM blog_comments')->fetchColumn();
-    $pendingCommentsCount = (int)$pdo->query("SELECT COUNT(*) FROM blog_comments WHERE status = 'pending'")->fetchColumn();
+    $topPosts = $pdo->query("
+        SELECT id, title, slug, views, status
+        FROM blog_posts
+        WHERE status = 'published'
+        ORDER BY views DESC, id DESC
+        LIMIT 6
+    ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {}
+
+$recentMessages = [];
+try {
+    $recentMessages = $pdo->query("
+        SELECT id, name, subject, created_at, is_read
+        FROM messages
+        ORDER BY id DESC
+        LIMIT 5
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {}
+
+$chartPayload = [
+    'visitors' => $visitorSeries,
+    'blogReaders' => $blogReaderSeries,
+    'content' => [
+        'labels' => ['Blog', 'Projects', 'Education', 'Experience', 'Publications'],
+        'values' => [
+            $counts['blog_all'],
+            $counts['projects'],
+            $counts['education'],
+            $counts['experience'],
+            $counts['publications'],
+        ],
+    ],
+    'blogStatus' => [
+        'labels' => ['Published', 'Draft', 'Other'],
+        'values' => [
+            $counts['blog_published'],
+            $counts['blog_draft'],
+            max(0, $counts['blog_all'] - $counts['blog_published'] - $counts['blog_draft']),
+        ],
+    ],
+];
 ?>
 <!doctype html>
 <html lang="en">
@@ -236,47 +114,8 @@ try {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
-  <style>
-    .quick-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    .quick-card {
-      display: block;
-      background: var(--soft);
-      border: 1px solid var(--line);
-      padding: 18px;
-      color: var(--text);
-      box-shadow: 0 4px 12px var(--shadow);
-    }
-
-    .quick-card .icon-wrap {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 42px;
-      height: 42px;
-      margin-bottom: 12px;
-      background: var(--primary-soft);
-      border: 1px solid #dbe8ff;
-      color: var(--primary);
-    }
-
-    .quick-card h3 {
-      margin: 0 0 8px;
-      font-size: 1.08rem;
-    }
-
-    .quick-card p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.6;
-      font-size: 0.93rem;
-    }
-  </style>
+  <link rel="stylesheet" href="../assets/css/admin.css?v=4">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -288,113 +127,342 @@ try {
       <?php if (!empty($notice)): ?>
         <div class="notice"><?php echo htmlspecialchars($notice); ?></div>
       <?php endif; ?>
-
       <?php if (!empty($error)): ?>
         <div class="error-box"><?php echo htmlspecialchars($error); ?></div>
       <?php endif; ?>
 
-      <?php if ($unreadMessagesCount > 0): ?>
-        <div class="error-box" style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--danger);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <i class="fa-solid fa-bell fa-bounce" style="font-size: 1.15rem; color: var(--danger);"></i>
-            <span style="font-weight: 700; color: var(--text);">You have <?php echo $unreadMessagesCount; ?> unread message(s) in your Inbox!</span>
+      <?php if ($counts['messages_unread'] > 0): ?>
+        <div class="error-box dash-alert" style="border-left: 4px solid var(--danger);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <i class="fa-solid fa-bell" style="color: var(--danger);"></i>
+            <span style="font-weight:700;">You have <?php echo (int) $counts['messages_unread']; ?> unread message(s).</span>
           </div>
-          <a href="messages.php" class="btn primary small" style="box-shadow: none;">
-            <i class="fa-solid fa-envelope-open-text"></i> View Messages
-          </a>
+          <a href="messages.php" class="btn primary small"><i class="fa-solid fa-envelope-open-text"></i> Inbox</a>
         </div>
       <?php endif; ?>
 
-      <section class="stats-grid">
-        <div class="stat-card" style="border-top-color: var(--danger);">
-          <span class="label">Unread Messages</span>
-          <div class="value" style="color: var(--danger);"><?php echo $unreadMessagesCount; ?></div>
+      <section class="dash-kpis">
+        <article class="dash-kpi dash-kpi--accent">
+          <span class="dash-kpi__label">Unique visitors today</span>
+          <strong class="dash-kpi__value"><?php echo number_format($uniqueToday); ?></strong>
+          <span class="dash-kpi__meta">Yesterday: <?php echo number_format($uniqueYesterday); ?></span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Unique · last 7 days</span>
+          <strong class="dash-kpi__value"><?php echo number_format($unique7); ?></strong>
+          <span class="dash-kpi__meta">One count per person / day</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Unique · last 30 days</span>
+          <strong class="dash-kpi__value"><?php echo number_format($unique30); ?></strong>
+          <span class="dash-kpi__meta">Site-wide (not pageviews)</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Blog post views</span>
+          <strong class="dash-kpi__value"><?php echo number_format($counts['blog_views_total']); ?></strong>
+          <span class="dash-kpi__meta"><?php echo (int) $counts['blog_published']; ?> published posts</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Unread messages</span>
+          <strong class="dash-kpi__value"><?php echo number_format($counts['messages_unread']); ?></strong>
+          <span class="dash-kpi__meta"><?php echo (int) $counts['messages_total']; ?> total</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Pending comments</span>
+          <strong class="dash-kpi__value"><?php echo number_format($counts['comments_pending']); ?></strong>
+          <span class="dash-kpi__meta"><?php echo (int) $counts['comments_total']; ?> total</span>
+        </article>
+      </section>
+
+      <section class="dash-charts">
+        <div class="panel dash-chart-card dash-chart-card--wide">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Unique visitors / day</h2>
+              <p class="dash-chart-card__hint">Each person is counted once per day, even if they open many pages.</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap">
+            <canvas id="chart-unique-visitors" height="110" aria-label="Unique visitors line chart"></canvas>
+          </div>
         </div>
-        <div class="stat-card">
-          <span class="label">Education</span>
-          <div class="value"><?php echo count($education); ?></div>
+
+        <div class="panel dash-chart-card">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Blog readers / day</h2>
+              <p class="dash-chart-card__hint">Distinct devices reading posts (24h window per post).</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap">
+            <canvas id="chart-blog-readers" height="160" aria-label="Blog readers bar chart"></canvas>
+          </div>
         </div>
-        <div class="stat-card">
-          <span class="label">Experience</span>
-          <div class="value"><?php echo count($experience); ?></div>
+
+        <div class="panel dash-chart-card">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Content mix</h2>
+              <p class="dash-chart-card__hint">Portfolio inventory by section.</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap dash-chart-wrap--donut">
+            <canvas id="chart-content-mix" aria-label="Content mix doughnut chart"></canvas>
+          </div>
         </div>
-        <div class="stat-card">
-          <span class="label">Publications</span>
-          <div class="value"><?php echo count($publications); ?></div>
+
+        <div class="panel dash-chart-card">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Blog status</h2>
+              <p class="dash-chart-card__hint">Published vs draft posts.</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap dash-chart-wrap--donut">
+            <canvas id="chart-blog-status" aria-label="Blog status doughnut chart"></canvas>
+          </div>
         </div>
-        <div class="stat-card">
-          <span class="label">Blog Posts</span>
-          <div class="value"><?php echo count($blog_posts); ?></div>
+      </section>
+
+      <section class="dash-split">
+        <div class="panel">
+          <div class="admin-list-head">
+            <h2 style="margin:0;"><i class="fa-solid fa-fire" style="color:var(--primary);"></i> Top posts by views</h2>
+            <a href="blog.php" class="btn small">Manage blog</a>
+          </div>
+          <?php if (empty($topPosts)): ?>
+            <p class="muted-copy">No published posts yet.</p>
+          <?php else: ?>
+            <div class="table-wrap">
+              <table class="data-table" style="width:100%;">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Views</th>
+                    <th class="no-sort">Open</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($topPosts as $p): ?>
+                    <tr>
+                      <td><strong><?php echo htmlspecialchars($p['title']); ?></strong></td>
+                      <td data-order="<?php echo (int) $p['views']; ?>"><?php echo number_format((int) $p['views']); ?></td>
+                      <td class="actions-cell">
+                        <a class="btn small" href="../public/post.php?slug=<?php echo urlencode($p['slug']); ?>" target="_blank" rel="noopener">View</a>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php endif; ?>
         </div>
-        <div class="stat-card">
-          <span class="label">Comments</span>
-          <div class="value"><?php echo $totalCommentsCount; ?></div>
-        </div>
-        <div class="stat-card">
-          <span class="label">Projects</span>
-          <div class="value"><?php echo count($projects); ?></div>
+
+        <div class="panel">
+          <div class="admin-list-head">
+            <h2 style="margin:0;"><i class="fa-solid fa-inbox" style="color:var(--primary);"></i> Recent messages</h2>
+            <a href="messages.php" class="btn small">Inbox</a>
+          </div>
+          <?php if (empty($recentMessages)): ?>
+            <p class="muted-copy">No messages yet.</p>
+          <?php else: ?>
+            <ul class="dash-feed">
+              <?php foreach ($recentMessages as $m): ?>
+                <li class="dash-feed__item<?php echo empty($m['is_read']) ? ' is-unread' : ''; ?>">
+                  <div>
+                    <strong><?php echo htmlspecialchars($m['name']); ?></strong>
+                    <span><?php echo htmlspecialchars($m['subject'] ?: '(no subject)'); ?></span>
+                  </div>
+                  <time><?php echo !empty($m['created_at']) ? date('M j', strtotime($m['created_at'])) : ''; ?></time>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Manage Portfolio Sections</h2>
-        <div class="quick-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:18px;">
-          <a href="profile.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-user"></i></div>
-            <h3>Personal Details</h3>
-            <p>Update your bio, contact coordinates, social networks, and profile summary.</p>
-          </a>
-
-          <a href="education.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-graduation-cap"></i></div>
-            <h3>Education</h3>
-            <p>Manage universities, degrees, honors, and academic backgrounds.</p>
-          </a>
-
-          <a href="experience.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-briefcase"></i></div>
-            <h3>Experience</h3>
-            <p>Track engineering roles, appointments, timelines, and milestones.</p>
-          </a>
-
-          <a href="publications.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-book-open"></i></div>
-            <h3>Publications</h3>
-            <p>Add research papers, conference talks, proceedings, and DOI links.</p>
-          </a>
-
+        <div class="admin-list-head">
+          <h2 style="margin:0;">Quick links</h2>
+        </div>
+        <div class="quick-grid">
           <a href="blog.php" class="quick-card">
             <div class="icon-wrap"><i class="fa-solid fa-pen-nib"></i></div>
             <h3>Blog Posts</h3>
-            <p>Write, edit, and publish technical insights, tutorials, and system updates.</p>
+            <p><?php echo (int) $counts['blog_published']; ?> published · <?php echo (int) $counts['blog_draft']; ?> drafts</p>
           </a>
-
-          <a href="comments.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-comments"></i></div>
-            <h3>Blog Comments</h3>
-            <p>Review, moderate, approve, or remove discussion comments on articles.</p>
-          </a>
-
           <a href="projects.php" class="quick-card">
             <div class="icon-wrap"><i class="fa-solid fa-rocket"></i></div>
             <h3>Projects</h3>
-            <p>Showcase software systems, live applications, and screenshots.</p>
+            <p><?php echo (int) $counts['projects']; ?> projects in your portfolio.</p>
           </a>
-
+          <a href="comments.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-comments"></i></div>
+            <h3>Comments</h3>
+            <p><?php echo (int) $counts['comments_pending']; ?> awaiting moderation.</p>
+          </a>
+          <a href="messages.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-envelope"></i></div>
+            <h3>Messages</h3>
+            <p><?php echo (int) $counts['messages_unread']; ?> unread in the inbox.</p>
+          </a>
+          <a href="profile.php" class="quick-card">
+            <div class="icon-wrap"><i class="fa-solid fa-user"></i></div>
+            <h3>Profile</h3>
+            <p>Bio, contact details, and social links.</p>
+          </a>
           <a href="settings.php" class="quick-card">
             <div class="icon-wrap"><i class="fa-solid fa-gear"></i></div>
             <h3>Settings</h3>
-            <p>Adjust site title, branding, preferences, and portfolio configuration.</p>
-          </a>
-
-          <a href="logo.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-image"></i></div>
-            <h3>Logo</h3>
-            <p>Upload or update the brand avatar and emblem used across the portfolio.</p>
+            <p>Site title, branding, and preferences.</p>
           </a>
         </div>
       </section>
     </main>
   </div>
+
+  <script>
+  window.__DASH_CHARTS = <?php echo json_encode($chartPayload, JSON_UNESCAPED_UNICODE); ?>;
+  </script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined' || !window.__DASH_CHARTS) return;
+
+    var data = window.__DASH_CHARTS;
+    var brand = '#ea580c';
+    var slate = '#0f172a';
+    var muted = '#94a3b8';
+    var grid = 'rgba(15, 23, 42, 0.08)';
+
+    Chart.defaults.font.family = 'Outfit, sans-serif';
+    Chart.defaults.color = muted;
+
+    var visitorCtx = document.getElementById('chart-unique-visitors');
+    if (visitorCtx) {
+      new Chart(visitorCtx, {
+        type: 'line',
+        data: {
+          labels: data.visitors.labels,
+          datasets: [{
+            label: 'Unique visitors',
+            data: data.visitors.values,
+            borderColor: brand,
+            backgroundColor: 'rgba(234, 88, 12, 0.12)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var n = ctx.parsed.y || 0;
+                  return n + (n === 1 ? ' unique visitor' : ' unique visitors');
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              grid: { color: grid }
+            }
+          }
+        }
+      });
+    }
+
+    var readersCtx = document.getElementById('chart-blog-readers');
+    if (readersCtx) {
+      new Chart(readersCtx, {
+        type: 'bar',
+        data: {
+          labels: data.blogReaders.labels,
+          datasets: [{
+            label: 'Distinct readers',
+            data: data.blogReaders.values,
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            hoverBackgroundColor: brand,
+            borderRadius: 0,
+            maxBarThickness: 18
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxRotation: 0,
+                callback: function (val, i) {
+                  var label = this.getLabelForValue(val);
+                  return i % 3 === 0 ? label : '';
+                }
+              }
+            },
+            y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } }
+          }
+        }
+      });
+    }
+
+    var mixCtx = document.getElementById('chart-content-mix');
+    if (mixCtx) {
+      new Chart(mixCtx, {
+        type: 'doughnut',
+        data: {
+          labels: data.content.labels,
+          datasets: [{
+            data: data.content.values,
+            backgroundColor: ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
+          },
+          cutout: '62%'
+        }
+      });
+    }
+
+    var statusCtx = document.getElementById('chart-blog-status');
+    if (statusCtx) {
+      new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+          labels: data.blogStatus.labels,
+          datasets: [{
+            data: data.blogStatus.values,
+            backgroundColor: ['#ea580c', '#cbd5e1', '#64748b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
+          },
+          cutout: '62%'
+        }
+      });
+    }
+  });
+  </script>
 </body>
 </html>
