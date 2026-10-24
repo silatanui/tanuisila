@@ -86,13 +86,7 @@ try {
 $topPostLabels = [];
 $topPostValues = [];
 foreach ($topPosts as $p) {
-    $title = trim((string) ($p['title'] ?? 'Untitled'));
-    if (function_exists('mb_strlen') && mb_strlen($title) > 28) {
-        $title = mb_substr($title, 0, 25) . '…';
-    } elseif (strlen($title) > 28) {
-        $title = substr($title, 0, 25) . '…';
-    }
-    $topPostLabels[] = $title;
+    $topPostLabels[] = trim((string) ($p['title'] ?? 'Untitled')) ?: 'Untitled';
     $topPostValues[] = (int) ($p['views'] ?? 0);
 }
 
@@ -128,7 +122,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=9">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=10">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -206,7 +200,6 @@ $chartPayload = [
         <div class="dash-map-layout">
           <div class="dash-map-wrap">
             <div id="world-visitors-map" class="dash-world-map" role="img" aria-label="World map of unique visitors by country"></div>
-            <div class="dash-map-legend" id="world-visitors-legend" aria-label="Visitor count legend"></div>
           </div>
           <aside class="dash-country-list">
             <h3>All places</h3>
@@ -230,6 +223,7 @@ $chartPayload = [
               </ol>
             <?php endif; ?>
           </aside>
+          <div class="dash-map-legend" id="world-visitors-legend" aria-label="Visitor count legend"></div>
         </div>
       </section>
 
@@ -265,8 +259,11 @@ $chartPayload = [
               <p class="dash-chart-card__hint">Portfolio inventory by section.</p>
             </div>
           </div>
-          <div class="dash-chart-wrap dash-chart-wrap--donut">
-            <canvas id="chart-content-mix" aria-label="Content mix doughnut chart"></canvas>
+          <div class="dash-pie">
+            <div class="dash-chart-wrap dash-chart-wrap--donut">
+              <canvas id="chart-content-mix" aria-label="Content mix doughnut chart"></canvas>
+            </div>
+            <ul class="dash-pie-legend" id="legend-content-mix"></ul>
           </div>
         </div>
 
@@ -277,8 +274,11 @@ $chartPayload = [
               <p class="dash-chart-card__hint">Share of views among your most-read published posts.</p>
             </div>
           </div>
-          <div class="dash-chart-wrap dash-chart-wrap--donut">
-            <canvas id="chart-top-posts" aria-label="Top posts by views pie chart"></canvas>
+          <div class="dash-pie">
+            <div class="dash-chart-wrap dash-chart-wrap--donut">
+              <canvas id="chart-top-posts" aria-label="Top posts by views pie chart"></canvas>
+            </div>
+            <ul class="dash-pie-legend" id="legend-top-posts"></ul>
           </div>
         </div>
       </section>
@@ -696,15 +696,44 @@ $chartPayload = [
       });
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function fillHtmlLegend(elId, labels, values, colors, unit) {
+      var el = document.getElementById(elId);
+      if (!el || !labels || !labels.length) return;
+      var total = (values || []).reduce(function (a, b) { return a + (b || 0); }, 0) || 1;
+      el.innerHTML = labels.map(function (label, i) {
+        var n = values[i] || 0;
+        var pct = Math.round((n / total) * 100);
+        var safe = escapeHtml(label);
+        var meta = unit === 'views'
+          ? n.toLocaleString() + ' views · ' + pct + '%'
+          : n.toLocaleString() + ' · ' + pct + '%';
+        return '<li>' +
+          '<i class="dash-pie-legend__swatch" style="background:' + (colors[i] || '#94a3b8') + '"></i>' +
+          '<div><strong title="' + safe + '">' + safe + '</strong>' +
+          '<span>' + meta + '</span></div>' +
+          '</li>';
+      }).join('');
+    }
+
+    var mixColors = ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c'];
     var mixCtx = document.getElementById('chart-content-mix');
     if (mixCtx) {
+      fillHtmlLegend('legend-content-mix', data.content.labels, data.content.values, mixColors, 'count');
       new Chart(mixCtx, {
         type: 'doughnut',
         data: {
           labels: data.content.labels,
           datasets: [{
             data: data.content.values,
-            backgroundColor: ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c'],
+            backgroundColor: mixColors,
             borderWidth: 0
           }]
         },
@@ -712,22 +741,24 @@ $chartPayload = [
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
+            legend: { display: false }
           },
           cutout: '62%'
         }
       });
     }
 
+    var topColors = ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c', '#64748b'];
     var topPostsCtx = document.getElementById('chart-top-posts');
     if (topPostsCtx && data.topPosts && data.topPosts.labels && data.topPosts.labels.length) {
+      fillHtmlLegend('legend-top-posts', data.topPosts.labels, data.topPosts.values, topColors, 'views');
       new Chart(topPostsCtx, {
         type: 'pie',
         data: {
           labels: data.topPosts.labels,
           datasets: [{
             data: data.topPosts.values,
-            backgroundColor: ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c', '#64748b'],
+            backgroundColor: topColors,
             borderWidth: 0
           }]
         },
@@ -735,14 +766,7 @@ $chartPayload = [
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                boxWidth: 12,
-                padding: 12,
-                font: { size: 11 }
-              }
-            },
+            legend: { display: false },
             tooltip: {
               callbacks: {
                 label: function (ctx) {
