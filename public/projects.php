@@ -102,25 +102,25 @@ function project_resolve_image(array $p): string {
               <div class="proj-case__index" aria-hidden="true"><?php echo $num; ?></div>
 
               <div class="proj-case__grid">
-                <?php if (!empty($pImg)): ?>
-                  <div class="proj-case__media">
-                    <div class="proj-mockup">
-                      <div class="proj-mockup__bar">
-                        <span class="proj-mockup__dots" aria-hidden="true"></span>
-                        <span class="proj-mockup__url"><?php echo htmlspecialchars($host ?: 'tanuisila.dev', ENT_QUOTES, 'UTF-8'); ?></span>
-                      </div>
-                      <?php if (!empty($p['url'])): ?>
-                        <a
-                          class="proj-mockup__shot"
-                          href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Open <?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                        >
-                      <?php else: ?>
-                        <div class="proj-mockup__shot">
-                      <?php endif; ?>
-                          <div class="img-skeleton-wrap proj-mockup__frame">
+                <div class="proj-case__media">
+                  <div class="proj-mockup">
+                    <div class="proj-mockup__bar">
+                      <span class="proj-mockup__dots" aria-hidden="true"></span>
+                      <span class="proj-mockup__url"><?php echo htmlspecialchars($host ?: 'tanuisila.dev', ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <?php if (!empty($p['url'])): ?>
+                      <a
+                        class="proj-mockup__shot"
+                        href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open <?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                      >
+                    <?php else: ?>
+                      <div class="proj-mockup__shot">
+                    <?php endif; ?>
+                        <div class="<?php echo $pImg ? 'img-skeleton-wrap' : ''; ?> proj-mockup__frame<?php echo $pImg ? '' : ' proj-mockup__frame--empty'; ?>">
+                          <?php if ($pImg): ?>
                             <img
                               src="<?php echo htmlspecialchars($pImg, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo time(); ?>"
                               alt="<?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?> screenshot"
@@ -128,15 +128,17 @@ function project_resolve_image(array $p): string {
                               decoding="async"
                               onload="var w=this.closest('.img-skeleton-wrap'); if(w) w.classList.add('loaded')"
                             >
-                          </div>
-                      <?php if (!empty($p['url'])): ?>
-                        </a>
-                      <?php else: ?>
+                          <?php else: ?>
+                            <?php echo media_placeholder($p['title'] ?? '', 'media-ph--project'); ?>
+                          <?php endif; ?>
                         </div>
-                      <?php endif; ?>
-                    </div>
+                    <?php if (!empty($p['url'])): ?>
+                      </a>
+                    <?php else: ?>
+                      </div>
+                    <?php endif; ?>
                   </div>
-                <?php endif; ?>
+                </div>
 
                 <div class="proj-case__body">
                   <div class="proj-case__status">

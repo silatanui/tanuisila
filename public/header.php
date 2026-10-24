@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/education.php';
+require_once __DIR__ . '/../includes/media.php';
 ensureEducationDetails($pdo);
 
 $preferredLogos = [

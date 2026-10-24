@@ -104,38 +104,66 @@
         return null;
     }
 
-    // Automatic Skeleton Shimmer Image Loader
+    // Automatic Skeleton Shimmer Image Loader + missing-image placeholders
+    function buildMediaPlaceholder(label) {
+      const ph = document.createElement('span');
+      ph.className = 'media-ph';
+      ph.setAttribute('aria-hidden', 'true');
+      const letter = (label || '').trim().charAt(0);
+      ph.innerHTML =
+        '<span class="media-ph__bg"></span><span class="media-ph__pattern"></span>' +
+        (letter
+          ? '<span class="media-ph__letter">' + letter.toUpperCase() + '</span>'
+          : '<span class="media-ph__icon"></span>');
+      return ph;
+    }
+
+    function replaceBrokenImage(img) {
+      if (!img || img.dataset.phApplied === '1') return;
+      img.dataset.phApplied = '1';
+      const label = img.getAttribute('alt') || '';
+      const ph = buildMediaPlaceholder(label);
+      const wrap = img.closest('.img-skeleton-wrap, .bl-hub-feature__media, .bl-hub-topread__thumb, .bl-hub-card__media, .bp-related-card__thumb, .proj-mockup__frame, .bp-banner__media');
+      img.replaceWith(ph);
+      if (wrap) {
+        wrap.classList.add('loaded', 'has-placeholder');
+        wrap.classList.remove('img-skeleton-wrap');
+      }
+    }
+
+    function bindImageLifecycle(img, wrap) {
+      if (!img) return;
+      const markLoaded = () => { if (wrap) wrap.classList.add('loaded'); };
+      if (img.complete) {
+        if (img.naturalWidth > 0) markLoaded();
+        else replaceBrokenImage(img);
+        return;
+      }
+      img.addEventListener('load', markLoaded, { once: true });
+      img.addEventListener('error', () => replaceBrokenImage(img), { once: true });
+    }
+
     function initSkeletonLoaders() {
       const wrappers = document.querySelectorAll('.img-skeleton-wrap');
       wrappers.forEach(wrap => {
-        const img = wrap.querySelector('img');
-        if (!img) return;
-
-        if (img.complete && img.naturalWidth > 0) {
-          wrap.classList.add('loaded');
-        } else {
-          img.addEventListener('load', () => wrap.classList.add('loaded'), { once: true });
-          img.addEventListener('error', () => wrap.classList.add('loaded'), { once: true });
-        }
+        bindImageLifecycle(wrap.querySelector('img'), wrap);
       });
 
-      document.querySelectorAll('article img, .blog-post img, .editorial-bio-content img').forEach(img => {
-        if (!img.closest('.img-skeleton-wrap') && !img.classList.contains('no-skeleton')) {
-          const wrap = document.createElement('div');
-          wrap.className = 'img-skeleton-wrap';
-          if (img.style.height) wrap.style.height = img.style.height;
-          if (img.style.width) wrap.style.width = img.style.width;
-          if (img.style.marginBottom) wrap.style.marginBottom = img.style.marginBottom;
-          img.parentNode.insertBefore(wrap, img);
-          wrap.appendChild(img);
-
-          if (img.complete && img.naturalWidth > 0) {
-            wrap.classList.add('loaded');
-          } else {
-            img.addEventListener('load', () => wrap.classList.add('loaded'), { once: true });
-            img.addEventListener('error', () => wrap.classList.add('loaded'), { once: true });
+      document.querySelectorAll('article img, .blog-post img, .editorial-bio-content img, .bp-banner__media img, .proj-mockup__frame img').forEach(img => {
+        if (img.closest('.img-skeleton-wrap') || img.classList.contains('no-skeleton')) {
+          if (!img.closest('.img-skeleton-wrap')) {
+            bindImageLifecycle(img, img.parentElement);
           }
+          return;
         }
+        const wrap = document.createElement('div');
+        wrap.className = 'img-skeleton-wrap';
+        if (img.style.height) wrap.style.height = img.style.height;
+        if (img.style.width) wrap.style.width = img.style.width;
+        if (img.style.marginBottom) wrap.style.marginBottom = img.style.marginBottom;
+        img.parentNode.insertBefore(wrap, img);
+        wrap.appendChild(img);
+        bindImageLifecycle(img, wrap);
       });
     }
 

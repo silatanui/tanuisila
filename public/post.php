@@ -120,17 +120,19 @@ $authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jp
 <main id="main-content" class="bp-shell">
   <article id="blog-post">
 
-    <header class="bp-banner<?php echo $heroImage ? '' : ' bp-banner--plain'; ?>">
-      <?php if ($heroImage): ?>
-        <div class="bp-banner__media" aria-hidden="true">
+    <header class="bp-banner<?php echo $heroImage ? '' : ' bp-banner--placeholder'; ?>">
+      <div class="bp-banner__media<?php echo $heroImage ? '' : ' bp-banner__media--ph'; ?>" aria-hidden="true">
+        <?php if ($heroImage): ?>
           <img
             src="<?php echo htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo time(); ?>"
-            alt=""
+            alt="<?php echo htmlspecialchars($post['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
             fetchpriority="high"
             decoding="async"
           >
-        </div>
-      <?php endif; ?>
+        <?php else: ?>
+          <?php echo media_placeholder($post['title'] ?? '', 'media-ph--banner'); ?>
+        <?php endif; ?>
+      </div>
       <div class="bp-banner__veil" aria-hidden="true"></div>
 
       <?php if ($prevPost): ?>
@@ -316,17 +318,19 @@ $authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jp
                           <?php echo htmlspecialchars($relatedPost['title'], ENT_QUOTES, 'UTF-8'); ?>
                         </a>
                       </h3>
-                      <?php if (!empty($relatedPost['featured_image'])): ?>
-                        <a class="bp-related-card__thumb img-skeleton-wrap" href="post.php?slug=<?php echo urlencode($relatedPost['slug']); ?>" tabindex="-1" aria-hidden="true">
+                      <a class="bp-related-card__thumb<?php echo !empty($relatedPost['featured_image']) ? ' img-skeleton-wrap' : ' bp-related-card__thumb--empty'; ?>" href="post.php?slug=<?php echo urlencode($relatedPost['slug']); ?>" tabindex="-1" aria-hidden="true">
+                        <?php if (!empty($relatedPost['featured_image'])): ?>
                           <img
                             src="<?php echo htmlspecialchars(portfolioAssetUrl($relatedPost['featured_image']), ENT_QUOTES, 'UTF-8'); ?>"
-                            alt=""
+                            alt="<?php echo htmlspecialchars($relatedPost['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                             loading="lazy"
                             decoding="async"
                             onload="var w=this.closest('.img-skeleton-wrap'); if(w) w.classList.add('loaded')"
                           >
-                        </a>
-                      <?php endif; ?>
+                        <?php else: ?>
+                          <?php echo media_placeholder($relatedPost['title'] ?? '', 'media-ph--thumb'); ?>
+                        <?php endif; ?>
+                      </a>
                       <?php if ($relExcerpt !== ''): ?>
                         <p class="bp-related-card__excerpt"><?php echo htmlspecialchars($relExcerpt, ENT_QUOTES, 'UTF-8'); ?></p>
                       <?php endif; ?>

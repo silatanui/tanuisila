@@ -10,25 +10,37 @@ $blogPosts = $pdo->query("
     ORDER BY p.published_at DESC, p.id DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Prefer real categories for the filter bar (tags are too noisy for chips).
 $categories = [];
 foreach ($blogPosts as $post) {
-  $bits = [];
-  if (!empty($post['category'])) {
-    $bits = array_merge($bits, preg_split('/\s*,\s*/', $post['category']) ?: []);
+  if (empty($post['category'])) {
+    continue;
   }
-  if (!empty($post['tags'])) {
-    $bits = array_merge($bits, preg_split('/\s*,\s*/', $post['tags']) ?: []);
-  }
-  foreach ($bits as $bit) {
+  foreach (preg_split('/\s*,\s*/', $post['category']) ?: [] as $bit) {
     $bit = trim($bit);
     if ($bit !== '' && strlen($bit) <= 40) {
       $categories[$bit] = true;
     }
   }
 }
+// Fallback: if posts have no category field, use a short tag list.
+if (!$categories) {
+  foreach ($blogPosts as $post) {
+    if (empty($post['tags'])) {
+      continue;
+    }
+    foreach (preg_split('/\s*,\s*/', $post['tags']) ?: [] as $bit) {
+      $bit = trim($bit);
+      if ($bit !== '' && strlen($bit) <= 28) {
+        $categories[$bit] = true;
+      }
+    }
+  }
+}
 $categories = array_keys($categories);
 natcasesort($categories);
-$categories = array_slice(array_values($categories), 0, 14);
+$categories = array_slice(array_values($categories), 0, 12);
+$catVisibleLimit = 5;
 
 $latest = $blogPosts[0] ?? null;
 $topReads = array_slice($blogPosts, 1, 3);
@@ -79,11 +91,13 @@ function bl_post_tags(array $post): array {
                 <?php if ($latestImg): ?>
                   <img
                     src="<?php echo htmlspecialchars($latestImg, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo time(); ?>"
-                    alt=""
+                    alt="<?php echo htmlspecialchars($latest['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                     loading="eager"
                     decoding="async"
                     onload="var w=this.closest('.img-skeleton-wrap'); if(w) w.classList.add('loaded')"
                   >
+                <?php else: ?>
+                  <?php echo media_placeholder($latest['title'] ?? '', 'media-ph--feature'); ?>
                 <?php endif; ?>
               </a>
               <div class="bl-hub-feature__body">
@@ -124,11 +138,13 @@ function bl_post_tags(array $post): array {
                     <?php if ($trImg): ?>
                       <img
                         src="<?php echo htmlspecialchars($trImg, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo time(); ?>"
-                        alt=""
+                        alt="<?php echo htmlspecialchars($tr['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                         loading="lazy"
                         decoding="async"
                         onload="var w=this.closest('.img-skeleton-wrap'); if(w) w.classList.add('loaded')"
                       >
+                    <?php else: ?>
+                      <?php echo media_placeholder($tr['title'] ?? '', 'media-ph--thumb'); ?>
                     <?php endif; ?>
                   </a>
                   <div class="bl-hub-topread__copy">
@@ -164,13 +180,29 @@ function bl_post_tags(array $post): array {
           </label>
         </div>
 
-        <nav class="bl-hub-cats" aria-label="Filter by category">
+        <nav class="bl-hub-cats" id="bl-hub-cats" aria-label="Filter by category">
           <button type="button" class="bl-hub-cat is-active" data-filter="all">All</button>
-          <?php foreach ($categories as $cat): ?>
-            <button type="button" class="bl-hub-cat" data-filter="<?php echo htmlspecialchars(strtolower($cat), ENT_QUOTES, 'UTF-8'); ?>">
+          <?php foreach ($categories as $i => $cat): ?>
+            <button
+              type="button"
+              class="bl-hub-cat<?php echo $i >= $catVisibleLimit ? ' bl-hub-cat--extra' : ''; ?>"
+              data-filter="<?php echo htmlspecialchars(strtolower($cat), ENT_QUOTES, 'UTF-8'); ?>"
+            >
               <?php echo htmlspecialchars($cat, ENT_QUOTES, 'UTF-8'); ?>
             </button>
           <?php endforeach; ?>
+          <?php if (count($categories) > $catVisibleLimit): ?>
+            <button
+              type="button"
+              class="bl-hub-cat-more"
+              id="bl-hub-cat-more"
+              aria-expanded="false"
+              aria-controls="bl-hub-cats"
+            >
+              <span class="bl-hub-cat-more__label">More</span>
+              <span class="bl-hub-cat-more__plus" aria-hidden="true">+</span>
+            </button>
+          <?php endif; ?>
         </nav>
       </section>
 
@@ -206,13 +238,13 @@ function bl_post_tags(array $post): array {
                 <?php if ($img): ?>
                   <img
                     src="<?php echo htmlspecialchars($img, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo time(); ?>"
-                    alt=""
+                    alt="<?php echo htmlspecialchars($post['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                     loading="<?php echo $index < 6 ? 'eager' : 'lazy'; ?>"
                     decoding="async"
                     onload="var w=this.closest('.img-skeleton-wrap'); if(w) w.classList.add('loaded')"
                   >
                 <?php else: ?>
-                  <span class="bl-hub-card__letter" aria-hidden="true"><?php echo htmlspecialchars(strtoupper(substr($post['title'], 0, 1)), ENT_QUOTES, 'UTF-8'); ?></span>
+                  <?php echo media_placeholder($post['title'] ?? '', 'media-ph--card'); ?>
                 <?php endif; ?>
                 <?php if (!empty($tagList)): ?>
                   <span class="bl-hub-card__tags">
@@ -251,7 +283,9 @@ function bl_post_tags(array $post): array {
 <script>
 (function () {
   var cards = Array.prototype.slice.call(document.querySelectorAll('.bl-hub-card'));
+  var catsNav = document.getElementById('bl-hub-cats');
   var cats = document.querySelectorAll('.bl-hub-cat');
+  var catMore = document.getElementById('bl-hub-cat-more');
   var searchInput = document.getElementById('bl-hub-search');
   var emptyMsg = document.getElementById('bl-hub-empty');
   var pagesEl = document.getElementById('bl-hub-pages');
@@ -261,6 +295,28 @@ function bl_post_tags(array $post): array {
   var filter = 'all';
   var query = '';
   var page = 1;
+
+  function setCatsExpanded(open) {
+    if (!catsNav || !catMore) return;
+    catsNav.classList.toggle('is-expanded', open);
+    catMore.setAttribute('aria-expanded', open ? 'true' : 'false');
+    var label = catMore.querySelector('.bl-hub-cat-more__label');
+    var plus = catMore.querySelector('.bl-hub-cat-more__plus');
+    if (label) label.textContent = open ? 'Less' : 'More';
+    if (plus) plus.textContent = open ? '−' : '+';
+  }
+
+  if (catMore && catsNav) {
+    catMore.addEventListener('click', function () {
+      var open = !catsNav.classList.contains('is-expanded');
+      // Keep open if the active filter lives in the hidden set
+      if (!open) {
+        var active = catsNav.querySelector('.bl-hub-cat.is-active.bl-hub-cat--extra');
+        if (active) return;
+      }
+      setCatsExpanded(open);
+    });
+  }
 
   function matches(card) {
     var cat = ' ' + (card.getAttribute('data-category') || '') + ' ';
@@ -311,6 +367,7 @@ function bl_post_tags(array $post): array {
       cats.forEach(function (b) { b.classList.remove('is-active'); });
       btn.classList.add('is-active');
       filter = btn.getAttribute('data-filter') || 'all';
+      if (btn.classList.contains('bl-hub-cat--extra')) setCatsExpanded(true);
       page = 1;
       render();
     });

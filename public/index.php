@@ -62,19 +62,16 @@ try {
       <div class="hp-hero__visual" aria-hidden="false">
         <div class="hp-photo-frame" id="hero-photo-wrap">
           <div class="hp-photo-inner img-skeleton-wrap" id="hero-photo-skeleton">
-            <picture>
-              <source srcset="<?php echo appUrl('public/profile.webp'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.webp'); ?>" type="image/webp">
-              <img
-                src="<?php echo appUrl('public/profile.jpg'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.jpg'); ?>"
-                alt="<?php echo htmlspecialchars($profile['full_name']); ?>"
-                class="hp-photo"
-                fetchpriority="high"
-                decoding="async"
-                width="520"
-                height="640"
-                onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
-              >
-            </picture>
+            <img
+              src="<?php echo appUrl('public/profile.jpg'); ?>?v=<?php echo @filemtime(__DIR__ . '/profile.jpg'); ?>"
+              alt="<?php echo htmlspecialchars($profile['full_name']); ?>"
+              class="hp-photo"
+              fetchpriority="high"
+              decoding="async"
+              width="520"
+              height="640"
+              onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
+            >
           </div>
         </div>
       </div>
