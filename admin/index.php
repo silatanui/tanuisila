@@ -58,6 +58,7 @@ $unique30 = analyticsCountUniqueSince($pdo, $monthAgo);
 
 $visitorSeries = analyticsDailyUniqueSeries($pdo, 30);
 $blogReaderSeries = analyticsDailyBlogReadersSeries($pdo, 30);
+$countryBreakdown = analyticsCountryBreakdown($pdo, 30);
 
 $topPosts = [];
 try {
@@ -83,6 +84,7 @@ try {
 $chartPayload = [
     'visitors' => $visitorSeries,
     'blogReaders' => $blogReaderSeries,
+    'countries' => $countryBreakdown['series'],
     'content' => [
         'labels' => ['Blog', 'Projects', 'Education', 'Experience', 'Publications'],
         'values' => [
@@ -114,8 +116,11 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=4">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=5">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/maps/world.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -172,6 +177,51 @@ $chartPayload = [
           <strong class="dash-kpi__value"><?php echo number_format($counts['comments_pending']); ?></strong>
           <span class="dash-kpi__meta"><?php echo (int) $counts['comments_total']; ?> total</span>
         </article>
+      </section>
+
+      <section class="panel dash-map-panel">
+        <div class="admin-list-head">
+          <div>
+            <h2 style="margin:0;">Visitors by country</h2>
+            <p class="dash-chart-card__hint">
+              Darker = more unique visitors (last 30 days). Location is approximate from IP
+              (e.g. Nairobi, Kenya or Budapest, Hungary).
+            </p>
+          </div>
+          <span class="dash-map-total"><?php echo number_format((int) $countryBreakdown['total']); ?> located</span>
+        </div>
+        <div class="dash-map-layout">
+          <div class="dash-map-wrap">
+            <div id="world-visitors-map" class="dash-world-map" role="img" aria-label="World map of unique visitors by country"></div>
+            <div class="dash-map-legend" aria-hidden="true">
+              <span>Fewer</span>
+              <span class="dash-map-legend__bar"></span>
+              <span>More</span>
+            </div>
+          </div>
+          <aside class="dash-country-list">
+            <h3>Top places</h3>
+            <?php if (empty($countryBreakdown['top'])): ?>
+              <p class="muted-copy">No country data yet. It appears as real visitors arrive.</p>
+            <?php else: ?>
+              <ol>
+                <?php foreach ($countryBreakdown['top'] as $row): ?>
+                  <li>
+                    <div>
+                      <strong><?php echo htmlspecialchars($row['name']); ?></strong>
+                      <?php if (!empty($row['city'])): ?>
+                        <span><?php echo htmlspecialchars($row['city']); ?></span>
+                      <?php else: ?>
+                        <span><?php echo htmlspecialchars($row['code']); ?></span>
+                      <?php endif; ?>
+                    </div>
+                    <em><?php echo number_format((int) $row['count']); ?></em>
+                  </li>
+                <?php endforeach; ?>
+              </ol>
+            <?php endif; ?>
+          </aside>
+        </div>
       </section>
 
       <section class="dash-charts">
@@ -326,13 +376,60 @@ $chartPayload = [
   </script>
   <script>
   document.addEventListener('DOMContentLoaded', function () {
-    if (typeof Chart === 'undefined' || !window.__DASH_CHARTS) return;
+    if (!window.__DASH_CHARTS) return;
 
     var data = window.__DASH_CHARTS;
     var brand = '#ea580c';
     var slate = '#0f172a';
     var muted = '#94a3b8';
     var grid = 'rgba(15, 23, 42, 0.08)';
+
+    // World choropleth (jsVectorMap)
+    if (typeof jsVectorMap !== 'undefined' && document.getElementById('world-visitors-map')) {
+      var countryValues = data.countries || {};
+      var maxVal = 0;
+      Object.keys(countryValues).forEach(function (k) {
+        if (countryValues[k] > maxVal) maxVal = countryValues[k];
+      });
+
+      new jsVectorMap({
+        selector: '#world-visitors-map',
+        map: 'world',
+        backgroundColor: 'transparent',
+        zoomOnScroll: false,
+        regionsSelectable: false,
+        regionStyle: {
+          initial: {
+            fill: '#e2e8f0',
+            stroke: '#ffffff',
+            strokeWidth: 0.4,
+            fillOpacity: 1
+          },
+          hover: {
+            fillOpacity: 0.9,
+            cursor: 'pointer'
+          }
+        },
+        series: {
+          regions: [{
+            attribute: 'fill',
+            values: countryValues,
+            scale: ['#fecaca', '#f87171', '#ea580c', '#9a3412', '#431407'],
+            normalizeFunction: 'polynomial'
+          }]
+        },
+        onRegionTooltipShow: function (event, tooltip, code) {
+          var n = countryValues[code] || 0;
+          var label = n === 1 ? '1 unique visitor' : (n + ' unique visitors');
+          tooltip.text(
+            (tooltip.text() || code) + ' — ' + label,
+            true
+          );
+        }
+      });
+    }
+
+    if (typeof Chart === 'undefined') return;
 
     Chart.defaults.font.family = 'Outfit, sans-serif';
     Chart.defaults.color = muted;

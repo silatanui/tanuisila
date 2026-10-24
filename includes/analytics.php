@@ -35,6 +35,79 @@ function analyticsEnsureVisitorId(): string
 }
 
 /**
+ * Resolve approximate city/country from IP (server-side).
+ * @return array{country_code:?string,country_name:?string,city:?string}
+ */
+function analyticsLookupGeo(string $ip): array
+{
+    $empty = ['country_code' => null, 'country_name' => null, 'city' => null];
+    $ip = trim($ip);
+    if (
+        $ip === '' || $ip === '::1' || $ip === '127.0.0.1'
+        || strpos($ip, '192.168.') === 0 || strpos($ip, '10.') === 0
+    ) {
+        return $empty;
+    }
+
+    // Prefer Cloudflare / proxy country header when present (no external call)
+    $cf = strtoupper(trim((string) ($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '')));
+    if ($cf !== '' && $cf !== 'XX' && preg_match('/^[A-Z]{2}$/', $cf)) {
+        return [
+            'country_code' => $cf,
+            'country_name' => null,
+            'city' => null,
+        ];
+    }
+
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return $empty;
+    }
+
+    $url = 'http://ip-api.com/json/' . rawurlencode($ip) . '?fields=status,country,countryCode,city';
+    $json = null;
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_TIMEOUT => 3,
+            CURLOPT_USERAGENT => 'tanuisila-analytics/1.0',
+        ]);
+        $json = curl_exec($ch);
+        curl_close($ch);
+    } else {
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 3,
+                'header' => "User-Agent: tanuisila-analytics/1.0\r\n",
+            ],
+        ]);
+        $json = @file_get_contents($url, false, $ctx);
+    }
+
+    if (!is_string($json) || $json === '') {
+        return $empty;
+    }
+
+    $data = json_decode($json, true);
+    if (!is_array($data) || ($data['status'] ?? '') !== 'success') {
+        return $empty;
+    }
+
+    $code = strtoupper(trim((string) ($data['countryCode'] ?? '')));
+    if ($code === '' || !preg_match('/^[A-Z]{2}$/', $code)) {
+        return $empty;
+    }
+
+    return [
+        'country_code' => $code,
+        'country_name' => substr(trim((string) ($data['country'] ?? '')), 0, 100) ?: null,
+        'city' => substr(trim((string) ($data['city'] ?? '')), 0, 120) ?: null,
+    ];
+}
+
+/**
  * Record at most one unique site visitor for today.
  * Call from public pages only (not admin).
  */
@@ -67,15 +140,22 @@ function trackSiteUniqueVisit(PDO $pdo): void
 
     // Cookie alone identifies the device for unique daily counts
     $visitorHash = hash('sha256', 'site|' . $visitorId);
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ip = $_SERVER['HTTP_CF_CONNECTING_IP']
+        ?? $_SERVER['HTTP_X_FORWARDED_FOR']
+        ?? $_SERVER['REMOTE_ADDR']
+        ?? '';
+    if (strpos($ip, ',') !== false) {
+        $ip = trim(explode(',', $ip)[0]);
+    }
     $path = substr((string) ($_SERVER['REQUEST_URI'] ?? '/'), 0, 255);
     $visitDate = date('Y-m-d');
+    $geo = analyticsLookupGeo($ip);
 
     try {
         $stmt = $pdo->prepare("
             INSERT IGNORE INTO site_daily_visitors
-                (visit_date, visitor_hash, ip_address, user_agent, landing_path, first_seen)
-            VALUES (?, ?, ?, ?, ?, NOW())
+                (visit_date, visitor_hash, ip_address, user_agent, landing_path, country_code, country_name, city, first_seen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         $stmt->execute([
             $visitDate,
@@ -83,6 +163,9 @@ function trackSiteUniqueVisit(PDO $pdo): void
             substr($ip, 0, 45),
             substr($userAgent, 0, 255),
             $path,
+            $geo['country_code'],
+            $geo['country_name'],
+            $geo['city'],
         ]);
 
         if (!headers_sent()) {
@@ -250,4 +333,76 @@ function analyticsCountUniqueOn(PDO $pdo, string $date): int
     } catch (Throwable $e) {
         return 0;
     }
+}
+
+/**
+ * Unique visitors by country (for world map).
+ * @return array{series: array<string,int>, top: list<array{code:string,name:string,city:?string,count:int}>, total: int}
+ */
+function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
+{
+    $days = max(7, min(365, $days));
+    $series = [];
+    $top = [];
+    $total = 0;
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT
+                UPPER(country_code) AS code,
+                MAX(country_name) AS name,
+                COUNT(*) AS c
+            FROM site_daily_visitors
+            WHERE visit_date >= (CURDATE() - INTERVAL ? DAY)
+              AND country_code IS NOT NULL
+              AND country_code <> ''
+            GROUP BY UPPER(country_code)
+            ORDER BY c DESC
+        ");
+        $stmt->execute([$days - 1]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $code = (string) $row['code'];
+            $count = (int) $row['c'];
+            $series[$code] = $count;
+            $total += $count;
+            $top[] = [
+                'code' => $code,
+                'name' => (string) ($row['name'] ?: $code),
+                'city' => null,
+                'count' => $count,
+            ];
+        }
+
+        // Enrich top list with most common city per country (optional detail)
+        $cityStmt = $pdo->prepare("
+            SELECT UPPER(country_code) AS code, city, COUNT(*) AS c
+            FROM site_daily_visitors
+            WHERE visit_date >= (CURDATE() - INTERVAL ? DAY)
+              AND country_code IS NOT NULL
+              AND city IS NOT NULL
+              AND city <> ''
+            GROUP BY UPPER(country_code), city
+            ORDER BY c DESC
+        ");
+        $cityStmt->execute([$days - 1]);
+        $cityBest = [];
+        foreach ($cityStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $code = (string) $row['code'];
+            if (!isset($cityBest[$code])) {
+                $cityBest[$code] = (string) $row['city'];
+            }
+        }
+        foreach ($top as &$item) {
+            $item['city'] = $cityBest[$item['code']] ?? null;
+        }
+        unset($item);
+    } catch (Throwable $e) {
+        return ['series' => [], 'top' => [], 'total' => 0];
+    }
+
+    return [
+        'series' => $series,
+        'top' => array_slice($top, 0, 12),
+        'total' => $total,
+    ];
 }

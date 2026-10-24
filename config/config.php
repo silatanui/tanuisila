@@ -216,11 +216,18 @@ function ensurePortfolioSchema(PDO $pdo): void {
             `ip_address` VARCHAR(45) DEFAULT NULL,
             `user_agent` VARCHAR(255) DEFAULT NULL,
             `landing_path` VARCHAR(255) DEFAULT NULL,
+            `country_code` CHAR(2) DEFAULT NULL,
+            `country_name` VARCHAR(100) DEFAULT NULL,
+            `city` VARCHAR(120) DEFAULT NULL,
             `first_seen` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY `uniq_day_visitor` (`visit_date`, `visitor_hash`),
-            KEY `idx_visit_date` (`visit_date`)
+            KEY `idx_visit_date` (`visit_date`),
+            KEY `idx_country_code` (`country_code`)
         )
     ");
+    ensureColumnExists($pdo, 'site_daily_visitors', 'country_code', 'CHAR(2) DEFAULT NULL');
+    ensureColumnExists($pdo, 'site_daily_visitors', 'country_name', 'VARCHAR(100) DEFAULT NULL');
+    ensureColumnExists($pdo, 'site_daily_visitors', 'city', 'VARCHAR(120) DEFAULT NULL');
 
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `settings` (
