@@ -98,6 +98,7 @@ function project_resolve_image(array $p): string {
               id="<?php echo htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'); ?>"
               class="proj-case reveal-on-enter<?php echo $flip ? ' proj-case--flip' : ''; ?><?php echo empty($pImg) ? ' proj-case--text' : ''; ?>"
               data-tags="<?php echo htmlspecialchars($tagData, ENT_QUOTES, 'UTF-8'); ?>"
+              data-project-id="<?php echo (int) $p['id']; ?>"
             >
               <div class="proj-case__index" aria-hidden="true"><?php echo $num; ?></div>
 
@@ -110,10 +111,11 @@ function project_resolve_image(array $p): string {
                     </div>
                     <?php if (!empty($p['url'])): ?>
                       <a
-                        class="proj-mockup__shot"
+                        class="proj-mockup__shot js-project-launch"
                         href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>"
                         target="_blank"
                         rel="noopener noreferrer"
+                        data-project-id="<?php echo (int) $p['id']; ?>"
                         title="Open <?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?>"
                       >
                     <?php else: ?>
@@ -166,10 +168,11 @@ function project_resolve_image(array $p): string {
                   <?php if (!empty($p['url'])): ?>
                     <div class="proj-case__actions">
                       <a
-                        class="btn primary"
+                        class="btn primary js-project-launch"
                         href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>"
                         target="_blank"
                         rel="noopener noreferrer"
+                        data-project-id="<?php echo (int) $p['id']; ?>"
                       >
                         Launch live <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                       </a>
@@ -210,6 +213,51 @@ function project_resolve_image(array $p): string {
 
 <script>
 (function () {
+  var trackUrl = <?php echo json_encode(appUrl('public/track-project.php'), JSON_UNESCAPED_SLASHES); ?>;
+  var seenViews = {};
+
+  function sendProjectEvent(projectId, event) {
+    if (!projectId) return;
+    var body = JSON.stringify({ project_id: projectId, event: event });
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(trackUrl, new Blob([body], { type: 'application/json' }));
+        return;
+      }
+    } catch (e) {}
+    try {
+      fetch(trackUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body,
+        keepalive: true,
+        credentials: 'same-origin'
+      });
+    } catch (e2) {}
+  }
+
+  document.querySelectorAll('.js-project-launch').forEach(function (link) {
+    link.addEventListener('click', function () {
+      sendProjectEvent(parseInt(link.getAttribute('data-project-id') || '0', 10), 'click');
+    });
+  });
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var id = parseInt(entry.target.getAttribute('data-project-id') || '0', 10);
+        if (!id || seenViews[id]) return;
+        seenViews[id] = true;
+        sendProjectEvent(id, 'view');
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.45 });
+    document.querySelectorAll('.proj-case[data-project-id]').forEach(function (el) {
+      io.observe(el);
+    });
+  }
+
   var filters = document.querySelectorAll('.proj-filter, .proj-filter-reset');
   var cases = document.querySelectorAll('.proj-case');
   var emptyMsg = document.getElementById('proj-filter-empty');

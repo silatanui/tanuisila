@@ -534,3 +534,142 @@ function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
         'total' => $total,
     ];
 }
+
+/**
+ * Record a project card view or outbound launch click (deduped per visitor / 24h).
+ * @param 'view'|'click' $eventType
+ */
+function trackProjectEvent(PDO $pdo, int $projectId, string $eventType): bool
+{
+    $projectId = max(0, $projectId);
+    $eventType = $eventType === 'click' ? 'click' : 'view';
+    if ($projectId <= 0) {
+        return false;
+    }
+
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    if (analyticsIsBot($userAgent)) {
+        return false;
+    }
+
+    $cookieName = 'sila_pj_' . $eventType . '_' . $projectId;
+    if (!empty($_COOKIE[$cookieName])) {
+        return false;
+    }
+
+    $visitorId = analyticsEnsureVisitorId();
+    $ip = analyticsClientIp();
+    $visitorHash = hash('sha256', $visitorId . '|' . $ip . '|' . $userAgent . '|project|' . $eventType);
+
+    try {
+        $check = $pdo->prepare("
+            SELECT COUNT(*) FROM project_events
+            WHERE project_id = ? AND event_type = ? AND visitor_hash = ?
+              AND created_at >= (NOW() - INTERVAL 24 HOUR)
+        ");
+        $check->execute([$projectId, $eventType, $visitorHash]);
+        if ((int) $check->fetchColumn() > 0) {
+            if (!headers_sent()) {
+                setcookie($cookieName, '1', [
+                    'expires' => time() + 86400,
+                    'path' => '/',
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+            }
+            return false;
+        }
+
+        $pdo->prepare("
+            INSERT INTO project_events (project_id, event_type, visitor_hash, ip_address, user_agent, created_at)
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ")->execute([$projectId, $eventType, $visitorHash, $ip, substr($userAgent, 0, 255)]);
+
+        $column = $eventType === 'click' ? 'clicks' : 'views';
+        $pdo->prepare("UPDATE projects SET `{$column}` = `{$column}` + 1 WHERE id = ?")->execute([$projectId]);
+
+        if (!headers_sent()) {
+            setcookie($cookieName, '1', [
+                'expires' => time() + 86400,
+                'path' => '/',
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        }
+        $_COOKIE[$cookieName] = '1';
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+/**
+ * Daily unique people who viewed or launched any project.
+ * @return array{labels: string[], views: int[], clicks: int[]}
+ */
+function analyticsDailyProjectInterestSeries(PDO $pdo, int $days = 30): array
+{
+    $days = max(7, min(90, $days));
+    $viewMap = [];
+    $clickMap = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT DATE(created_at) AS d, event_type, COUNT(DISTINCT visitor_hash) AS c
+            FROM project_events
+            WHERE created_at >= (CURDATE() - INTERVAL ? DAY)
+            GROUP BY DATE(created_at), event_type
+            ORDER BY d ASC
+        ");
+        $stmt->execute([$days - 1]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $d = (string) $row['d'];
+            if ($row['event_type'] === 'click') {
+                $clickMap[$d] = (int) $row['c'];
+            } else {
+                $viewMap[$d] = (int) $row['c'];
+            }
+        }
+    } catch (Throwable $e) {
+        // table may not exist yet
+    }
+
+    $labels = [];
+    $views = [];
+    $clicks = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $d = date('Y-m-d', strtotime("-{$i} days"));
+        $labels[] = date('M j', strtotime($d));
+        $views[] = $viewMap[$d] ?? 0;
+        $clicks[] = $clickMap[$d] ?? 0;
+    }
+
+    return ['labels' => $labels, 'views' => $views, 'clicks' => $clicks];
+}
+
+/**
+ * @return list<array{id:int,title:string,url:?string,views:int,clicks:int}>
+ */
+function analyticsTopProjects(PDO $pdo, int $limit = 8): array
+{
+    $limit = max(1, min(20, $limit));
+    try {
+        $stmt = $pdo->query("
+            SELECT id, title, url, views, clicks
+            FROM projects
+            ORDER BY views DESC, clicks DESC, id DESC
+            LIMIT {$limit}
+        ");
+        $rows = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        return array_map(static function (array $row): array {
+            return [
+                'id' => (int) $row['id'],
+                'title' => (string) ($row['title'] ?? 'Untitled'),
+                'url' => $row['url'] !== null && $row['url'] !== '' ? (string) $row['url'] : null,
+                'views' => (int) ($row['views'] ?? 0),
+                'clicks' => (int) ($row['clicks'] ?? 0),
+            ];
+        }, $rows);
+    } catch (Throwable $e) {
+        return [];
+    }
+}

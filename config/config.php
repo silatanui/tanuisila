@@ -86,6 +86,22 @@ function ensurePortfolioSchema(PDO $pdo): void {
     ");
     ensureColumnExists($pdo, 'projects', 'image', "VARCHAR(512) DEFAULT ''");
     ensureColumnExists($pdo, 'projects', 'tags', "TEXT DEFAULT NULL");
+    ensureColumnExists($pdo, 'projects', 'views', 'INT UNSIGNED NOT NULL DEFAULT 0');
+    ensureColumnExists($pdo, 'projects', 'clicks', 'INT UNSIGNED NOT NULL DEFAULT 0');
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `project_events` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `project_id` INT UNSIGNED NOT NULL,
+            `event_type` ENUM('view', 'click') NOT NULL,
+            `visitor_hash` VARCHAR(64) NOT NULL,
+            `ip_address` VARCHAR(45) DEFAULT NULL,
+            `user_agent` VARCHAR(255) DEFAULT NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            KEY `idx_project_event_time` (`project_id`, `event_type`, `created_at`),
+            KEY `idx_project_visitor` (`project_id`, `event_type`, `visitor_hash`, `created_at`)
+        )
+    ");
 
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `education` (

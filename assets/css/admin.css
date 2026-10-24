@@ -782,9 +782,14 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
   font-variant-numeric: tabular-nums;
 }
 
+.dash-chart-wrap--bars {
+  height: auto;
+  min-height: 280px;
+}
+
 .dash-split {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
   margin-bottom: 18px;
 }

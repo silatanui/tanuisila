@@ -61,6 +61,8 @@ $networks30 = analyticsCountUniqueNetworksSince($pdo, $monthAgo);
 $visitorSeries = analyticsDailyUniqueSeries($pdo, 30);
 $blogReaderSeries = analyticsDailyBlogReadersSeries($pdo, 30);
 $countryBreakdown = analyticsCountryBreakdown($pdo, 30);
+$projectInterestSeries = analyticsDailyProjectInterestSeries($pdo, 30);
+$topProjects = analyticsTopProjects($pdo, 8);
 
 $topPosts = [];
 try {
@@ -90,6 +92,21 @@ foreach ($topPosts as $p) {
     $topPostValues[] = (int) ($p['views'] ?? 0);
 }
 
+$projectBarLabels = [];
+$projectBarViews = [];
+$projectBarClicks = [];
+foreach ($topProjects as $proj) {
+    $title = trim((string) ($proj['title'] ?? 'Untitled')) ?: 'Untitled';
+    if (function_exists('mb_strlen') && mb_strlen($title) > 36) {
+        $title = mb_substr($title, 0, 33) . '…';
+    } elseif (strlen($title) > 36) {
+        $title = substr($title, 0, 33) . '…';
+    }
+    $projectBarLabels[] = $title;
+    $projectBarViews[] = (int) ($proj['views'] ?? 0);
+    $projectBarClicks[] = (int) ($proj['clicks'] ?? 0);
+}
+
 $chartPayload = [
     'visitors' => $visitorSeries,
     'blogReaders' => $blogReaderSeries,
@@ -109,6 +126,12 @@ $chartPayload = [
         'labels' => $topPostLabels,
         'values' => $topPostValues,
     ],
+    'projectInterest' => $projectInterestSeries,
+    'topProjects' => [
+        'labels' => $projectBarLabels,
+        'views' => $projectBarViews,
+        'clicks' => $projectBarClicks,
+    ],
 ];
 ?>
 <!doctype html>
@@ -122,7 +145,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=12">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=13">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -281,9 +304,72 @@ $chartPayload = [
             <ul class="dash-pie-legend" id="legend-top-posts"></ul>
           </div>
         </div>
+
+        <div class="panel dash-chart-card dash-chart-card--wide">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Project interest / day</h2>
+              <p class="dash-chart-card__hint">Distinct people who saw a project card or launched a live demo (24h window per project).</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap">
+            <canvas id="chart-project-interest" height="120" aria-label="Project interest line chart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel dash-chart-card dash-chart-card--wide">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Top projects: views vs launches</h2>
+              <p class="dash-chart-card__hint">Card views on the projects page versus outbound “Launch live” clicks.</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap dash-chart-wrap--bars">
+            <canvas id="chart-top-projects" aria-label="Top projects horizontal bar chart"></canvas>
+          </div>
+        </div>
       </section>
 
       <section class="dash-split">
+        <div class="panel">
+          <div class="admin-list-head">
+            <h2 style="margin:0;"><i class="fa-solid fa-rocket" style="color:var(--primary);"></i> Top projects</h2>
+            <a href="projects.php" class="btn small">Manage projects</a>
+          </div>
+          <?php if (empty($topProjects)): ?>
+            <p class="muted-copy">No projects yet.</p>
+          <?php else: ?>
+            <div class="table-wrap">
+              <table class="data-table" style="width:100%;">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Views</th>
+                    <th>Launches</th>
+                    <th class="no-sort">Open</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($topProjects as $proj): ?>
+                    <tr>
+                      <td><strong><?php echo htmlspecialchars($proj['title']); ?></strong></td>
+                      <td data-order="<?php echo (int) $proj['views']; ?>"><?php echo number_format((int) $proj['views']); ?></td>
+                      <td data-order="<?php echo (int) $proj['clicks']; ?>"><?php echo number_format((int) $proj['clicks']); ?></td>
+                      <td class="actions-cell">
+                        <?php if (!empty($proj['url'])): ?>
+                          <a class="btn small" href="<?php echo htmlspecialchars($proj['url']); ?>" target="_blank" rel="noopener">Live</a>
+                        <?php else: ?>
+                          <span class="muted-copy">—</span>
+                        <?php endif; ?>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php endif; ?>
+        </div>
+
         <div class="panel">
           <div class="admin-list-head">
             <h2 style="margin:0;"><i class="fa-solid fa-fire" style="color:var(--primary);"></i> Top posts by views</h2>
@@ -780,6 +866,92 @@ $chartPayload = [
                 }
               }
             }
+          }
+        }
+      });
+    }
+
+    var projectInterestCtx = document.getElementById('chart-project-interest');
+    if (projectInterestCtx && data.projectInterest) {
+      new Chart(projectInterestCtx, {
+        type: 'line',
+        data: {
+          labels: data.projectInterest.labels,
+          datasets: [
+            {
+              label: 'Card views',
+              data: data.projectInterest.views,
+              borderColor: brand,
+              backgroundColor: 'rgba(234, 88, 12, 0.12)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 5,
+              borderWidth: 2.5
+            },
+            {
+              label: 'Live launches',
+              data: data.projectInterest.clicks,
+              borderColor: slate,
+              backgroundColor: 'rgba(15, 23, 42, 0.06)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 5,
+              borderWidth: 2.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+            y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } }
+          }
+        }
+      });
+    }
+
+    var topProjectsCtx = document.getElementById('chart-top-projects');
+    if (topProjectsCtx && data.topProjects && data.topProjects.labels && data.topProjects.labels.length) {
+      var barCount = data.topProjects.labels.length;
+      topProjectsCtx.parentElement.style.height = Math.max(260, 48 + barCount * 42) + 'px';
+      new Chart(topProjectsCtx, {
+        type: 'bar',
+        data: {
+          labels: data.topProjects.labels,
+          datasets: [
+            {
+              label: 'Card views',
+              data: data.topProjects.views,
+              backgroundColor: brand,
+              borderWidth: 0,
+              borderRadius: 0
+            },
+            {
+              label: 'Live launches',
+              data: data.topProjects.clicks,
+              backgroundColor: slate,
+              borderWidth: 0,
+              borderRadius: 0
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
           }
         }
       });
