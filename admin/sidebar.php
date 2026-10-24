@@ -10,48 +10,104 @@ function renderSidebar($active = '') {
         $pendingComments = (int)$pdo->query("SELECT COUNT(*) FROM `blog_comments` WHERE `status` = 'pending'")->fetchColumn();
     } catch (Throwable $e) {}
 
-    $links = [
-        'index.php' => ['icon' => 'fa-chart-pie', 'label' => 'Overview'],
-        'messages.php' => ['icon' => 'fa-envelope', 'label' => 'Inbox Messages', 'badge' => $msgCount],
-        'profile.php' => ['icon' => 'fa-user', 'label' => 'Personal Details'],
-        'education.php' => ['icon' => 'fa-graduation-cap', 'label' => 'Education'],
-        'experience.php' => ['icon' => 'fa-briefcase', 'label' => 'Work Experience'],
-        'publications.php' => ['icon' => 'fa-book-open', 'label' => 'Publications'],
-        'blog.php' => ['icon' => 'fa-pen-nib', 'label' => 'Blog Posts'],
-        'comments.php' => ['icon' => 'fa-comments', 'label' => 'Blog Comments', 'badge' => $pendingComments],
-        'projects.php' => ['icon' => 'fa-rocket', 'label' => 'Projects'],
-        'settings.php' => ['icon' => 'fa-gear', 'label' => 'Settings'],
-        'logo.php' => ['icon' => 'fa-image', 'label' => 'Logo']
+    $current = $active !== '' ? $active : basename($_SERVER['PHP_SELF'] ?? '');
+
+    $sections = [
+        [
+            'label' => 'Operate',
+            'links' => [
+                'index.php' => ['icon' => 'fa-chart-pie', 'label' => 'Overview', 'hint' => 'Dashboard'],
+                'messages.php' => ['icon' => 'fa-inbox', 'label' => 'Messages', 'hint' => 'Inbox', 'badge' => $msgCount],
+                'comments.php' => ['icon' => 'fa-comments', 'label' => 'Comments', 'hint' => 'Moderation', 'badge' => $pendingComments],
+            ],
+        ],
+        [
+            'label' => 'Content',
+            'links' => [
+                'blog.php' => ['icon' => 'fa-pen-nib', 'label' => 'Blog posts', 'hint' => 'Essays'],
+                'projects.php' => ['icon' => 'fa-rocket', 'label' => 'Projects', 'hint' => 'Portfolio'],
+                'research_projects.php' => ['icon' => 'fa-flask', 'label' => 'Research', 'hint' => 'Labs'],
+                'publications.php' => ['icon' => 'fa-book-open', 'label' => 'Publications', 'hint' => 'Writing'],
+            ],
+        ],
+        [
+            'label' => 'Profile',
+            'links' => [
+                'profile.php' => ['icon' => 'fa-id-card', 'label' => 'Personal details', 'hint' => 'About'],
+                'education.php' => ['icon' => 'fa-graduation-cap', 'label' => 'Education', 'hint' => 'School'],
+                'experience.php' => ['icon' => 'fa-briefcase', 'label' => 'Experience', 'hint' => 'Work'],
+            ],
+        ],
+        [
+            'label' => 'System',
+            'links' => [
+                'settings.php' => ['icon' => 'fa-sliders', 'label' => 'Settings', 'hint' => 'Config'],
+                'logo.php' => ['icon' => 'fa-image', 'label' => 'Logo', 'hint' => 'Brand'],
+            ],
+        ],
     ];
-    
+
     $html = '
-    <aside class="sidebar">
-      <div class="brand-box">
-        <img src="../Tanui-Sila-Logo-v3.png" alt="Tanui Sila logo">
-        <div class="brand-text">
-          <strong>Tanui Sila</strong>
-          <span>Admin</span>
+    <aside class="sidebar" aria-label="Admin navigation">
+      <div class="sidebar-inner">
+        <div class="brand-box">
+          <a class="brand-link" href="index.php" title="Admin overview">
+            <span class="brand-mark">
+              <img src="../Tanui-Sila-Logo-v3.png" alt="">
+            </span>
+            <span class="brand-text">
+              <strong>Tanui Sila</strong>
+              <span class="brand-chip">Admin cockpit</span>
+            </span>
+          </a>
+        </div>
+
+        <nav class="nav">';
+
+    foreach ($sections as $section) {
+        $html .= '<div class="nav-section">';
+        $html .= '<p class="nav-section__label">' . htmlspecialchars($section['label'], ENT_QUOTES, 'UTF-8') . '</p>';
+        $html .= '<div class="nav-section__links">';
+
+        foreach ($section['links'] as $url => $data) {
+            $isActive = ($current === $url) ? ' active' : '';
+            $badge = isset($data['badge']) ? (int)$data['badge'] : 0;
+            $badgeHtml = $badge > 0
+                ? '<span class="badge" aria-label="' . $badge . ' pending">' . $badge . '</span>'
+                : '';
+            $hint = isset($data['hint']) ? htmlspecialchars($data['hint'], ENT_QUOTES, 'UTF-8') : '';
+
+            $html .= '<a class="nav-link' . $isActive . '" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"'
+                . ($isActive ? ' aria-current="page"' : '')
+                . ' title="' . htmlspecialchars($data['label'], ENT_QUOTES, 'UTF-8') . '">'
+                . '<span class="nav-link__icon"><i class="fa-solid ' . htmlspecialchars($data['icon'], ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i></span>'
+                . '<span class="nav-link__copy">'
+                . '<span class="nav-link__label">' . htmlspecialchars($data['label'], ENT_QUOTES, 'UTF-8') . '</span>'
+                . ($hint !== '' ? '<span class="nav-link__hint">' . $hint . '</span>' : '')
+                . '</span>'
+                . $badgeHtml
+                . '</a>';
+        }
+
+        $html .= '</div></div>';
+    }
+
+    $html .= '
+        </nav>
+
+        <div class="sidebar-footer">
+          <a class="sidebar-foot-link sidebar-foot-link--site" href="../index.php" target="_blank" rel="noopener">
+            <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            <span>View portfolio</span>
+          </a>
+          <a class="sidebar-foot-link sidebar-foot-link--logout" href="logout.php">
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span>Logout</span>
+          </a>
         </div>
       </div>
-      <nav class="nav">';
-      
-    foreach ($links as $url => $data) {
-        $isActive = ($active === $url || basename($_SERVER['PHP_SELF']) === $url) ? ' class="active"' : '';
-        $badgeHtml = '';
-        if (isset($data['badge']) && $data['badge'] > 0) {
-            $badgeHtml = '<span class="badge">' . $data['badge'] . '</span>';
-        }
-        $html .= '<a href="' . $url . '"' . $isActive . '><i class="fa-solid ' . $data['icon'] . '"></i><span>' . $data['label'] . '</span>' . $badgeHtml . '</a>';
-    }
-    
-    $html .= '
-      </nav>
-      <div class="sidebar-footer">
-        <a href="../index.php" target="_blank">View portfolio</a>
-        <a href="logout.php">Logout</a>
-      </div>
     </aside>';
-    
+
     return $html;
 }
 ?>

@@ -82,7 +82,7 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=15">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
