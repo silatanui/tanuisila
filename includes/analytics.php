@@ -460,12 +460,13 @@ function analyticsCountUniqueNetworksSince(PDO $pdo, string $sinceDate): int
 
 /**
  * Unique visitors by country (for world map).
- * @return array{series: array<string,int>, top: list<array{code:string,name:string,city:?string,count:int}>, total: int}
+ * @return array{series: array<string,int>, names: array<string,string>, top: list<array{code:string,name:string,city:?string,count:int}>, total: int}
  */
 function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
 {
     $days = max(7, min(365, $days));
     $series = [];
+    $names = [];
     $top = [];
     $total = 0;
 
@@ -486,11 +487,13 @@ function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $code = (string) $row['code'];
             $count = (int) $row['c'];
+            $name = (string) ($row['name'] ?: $code);
             $series[$code] = $count;
+            $names[$code] = $name;
             $total += $count;
             $top[] = [
                 'code' => $code,
-                'name' => (string) ($row['name'] ?: $code),
+                'name' => $name,
                 'city' => null,
                 'count' => $count,
             ];
@@ -520,12 +523,14 @@ function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
         }
         unset($item);
     } catch (Throwable $e) {
-        return ['series' => [], 'top' => [], 'total' => 0];
+        return ['series' => [], 'names' => [], 'top' => [], 'total' => 0];
     }
 
     return [
         'series' => $series,
-        'top' => array_slice($top, 0, 12),
+        'names' => $names,
+        // Keep every located country in the list — small places like HK are easy to miss on the map.
+        'top' => $top,
         'total' => $total,
     ];
 }

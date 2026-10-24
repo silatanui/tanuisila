@@ -561,9 +561,33 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.dash-map-legend__pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dash-map-legend__pin i {
+  font-size: 0.55rem;
+  color: #ea580c;
+}
+
+.dash-world-map .jvm-marker {
+  cursor: pointer;
+}
+
 .dash-country-list {
   border-top: 1px solid var(--line);
   padding-top: 14px;
+  max-height: min(42vh, 360px);
+  overflow: auto;
 }
 
 .dash-country-list h3 {

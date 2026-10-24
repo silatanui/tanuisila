@@ -83,10 +83,24 @@ try {
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {}
 
+$topPostLabels = [];
+$topPostValues = [];
+foreach ($topPosts as $p) {
+    $title = trim((string) ($p['title'] ?? 'Untitled'));
+    if (function_exists('mb_strlen') && mb_strlen($title) > 28) {
+        $title = mb_substr($title, 0, 25) . '…';
+    } elseif (strlen($title) > 28) {
+        $title = substr($title, 0, 25) . '…';
+    }
+    $topPostLabels[] = $title;
+    $topPostValues[] = (int) ($p['views'] ?? 0);
+}
+
 $chartPayload = [
     'visitors' => $visitorSeries,
     'blogReaders' => $blogReaderSeries,
     'countries' => $countryBreakdown['series'],
+    'countryNames' => $countryBreakdown['names'] ?? [],
     'content' => [
         'labels' => ['Blog', 'Projects', 'Education', 'Experience', 'Publications'],
         'values' => [
@@ -97,13 +111,9 @@ $chartPayload = [
             $counts['publications'],
         ],
     ],
-    'blogStatus' => [
-        'labels' => ['Published', 'Draft', 'Other'],
-        'values' => [
-            $counts['blog_published'],
-            $counts['blog_draft'],
-            max(0, $counts['blog_all'] - $counts['blog_published'] - $counts['blog_draft']),
-        ],
+    'topPosts' => [
+        'labels' => $topPostLabels,
+        'values' => $topPostValues,
     ],
 ];
 ?>
@@ -118,7 +128,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=6">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=8">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -186,9 +196,8 @@ $chartPayload = [
           <div>
             <h2 style="margin:0;">Visitors by country</h2>
             <p class="dash-chart-card__hint">
-              Darker = more unique visitors (last 30 days). Counted by IP + browser family:
-              incognito in the same browser does not double-count; Chrome vs Firefox on shared Wi‑Fi counts as two.
-              Location is approximate from IP.
+              Darker = more unique visitors (last 30 days). Orange dots mark small or missing places
+              (e.g. Hong Kong, Singapore) that the world outline cannot show clearly. Location is approximate from IP.
             </p>
           </div>
           <span class="dash-map-total"><?php echo number_format((int) $countryBreakdown['total']); ?> located</span>
@@ -200,10 +209,11 @@ $chartPayload = [
               <span>Fewer</span>
               <span class="dash-map-legend__bar"></span>
               <span>More</span>
+              <span class="dash-map-legend__pin" title="Small places"><i class="fa-solid fa-circle"></i> Dot = small place</span>
             </div>
           </div>
           <aside class="dash-country-list">
-            <h3>Top places</h3>
+            <h3>All places</h3>
             <?php if (empty($countryBreakdown['top'])): ?>
               <p class="muted-copy">No country data yet. It appears as real visitors arrive.</p>
             <?php else: ?>
@@ -267,12 +277,12 @@ $chartPayload = [
         <div class="panel dash-chart-card">
           <div class="admin-list-head">
             <div>
-              <h2 style="margin:0;">Blog status</h2>
-              <p class="dash-chart-card__hint">Published vs draft posts.</p>
+              <h2 style="margin:0;">Top posts by views</h2>
+              <p class="dash-chart-card__hint">Share of views among your most-read published posts.</p>
             </div>
           </div>
           <div class="dash-chart-wrap dash-chart-wrap--donut">
-            <canvas id="chart-blog-status" aria-label="Blog status doughnut chart"></canvas>
+            <canvas id="chart-top-posts" aria-label="Top posts by views pie chart"></canvas>
           </div>
         </div>
       </section>
@@ -334,43 +344,6 @@ $chartPayload = [
         </div>
       </section>
 
-      <section class="panel">
-        <div class="admin-list-head">
-          <h2 style="margin:0;">Quick links</h2>
-        </div>
-        <div class="quick-grid">
-          <a href="blog.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-pen-nib"></i></div>
-            <h3>Blog Posts</h3>
-            <p><?php echo (int) $counts['blog_published']; ?> published · <?php echo (int) $counts['blog_draft']; ?> drafts</p>
-          </a>
-          <a href="projects.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-rocket"></i></div>
-            <h3>Projects</h3>
-            <p><?php echo (int) $counts['projects']; ?> projects in your portfolio.</p>
-          </a>
-          <a href="comments.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-comments"></i></div>
-            <h3>Comments</h3>
-            <p><?php echo (int) $counts['comments_pending']; ?> awaiting moderation.</p>
-          </a>
-          <a href="messages.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-envelope"></i></div>
-            <h3>Messages</h3>
-            <p><?php echo (int) $counts['messages_unread']; ?> unread in the inbox.</p>
-          </a>
-          <a href="profile.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-user"></i></div>
-            <h3>Profile</h3>
-            <p>Bio, contact details, and social links.</p>
-          </a>
-          <a href="settings.php" class="quick-card">
-            <div class="icon-wrap"><i class="fa-solid fa-gear"></i></div>
-            <h3>Settings</h3>
-            <p>Site title, branding, and preferences.</p>
-          </a>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -387,12 +360,100 @@ $chartPayload = [
     var muted = '#94a3b8';
     var grid = 'rgba(15, 23, 42, 0.08)';
 
-    // World choropleth (jsVectorMap)
+    // World choropleth (jsVectorMap) + pins for tiny / missing places
     if (typeof jsVectorMap !== 'undefined' && document.getElementById('world-visitors-map')) {
       var countryValues = data.countries || {};
+      var countryNames = data.countryNames || {};
       var maxVal = 0;
       Object.keys(countryValues).forEach(function (k) {
         if (countryValues[k] > maxVal) maxVal = countryValues[k];
+      });
+
+      // Coords for places missing from (or too small on) the world outline.
+      // jsVectorMap world.js omits HK, SG, MO, MT, and many islands.
+      var pinCoords = {
+        HK: [22.3193, 114.1694],
+        MO: [22.1987, 113.5439],
+        SG: [1.3521, 103.8198],
+        TW: [23.6978, 120.9605],
+        MT: [35.9375, 14.3754],
+        MC: [43.7384, 7.4246],
+        SM: [43.9424, 12.4578],
+        AD: [42.5063, 1.5218],
+        LI: [47.1660, 9.5554],
+        VA: [41.9029, 12.4534],
+        GI: [36.1408, -5.3536],
+        LU: [49.8153, 6.1296],
+        BH: [26.0667, 50.5577],
+        QA: [25.3548, 51.1839],
+        KW: [29.3117, 47.4818],
+        BN: [4.5353, 114.7277],
+        MV: [3.2028, 73.2207],
+        MU: [-20.3484, 57.5522],
+        SC: [-4.6796, 55.4920],
+        BB: [13.1939, -59.5432],
+        JM: [18.1096, -77.2975],
+        TT: [10.6918, -61.2225],
+        BS: [25.0343, -77.3963],
+        AG: [17.0608, -61.7964],
+        LC: [13.9094, -60.9789],
+        VC: [12.9843, -61.2872],
+        GD: [12.1165, -61.6790],
+        KN: [17.3578, -62.7830],
+        DM: [15.4150, -61.3710],
+        CY: [35.1264, 33.4299],
+        IL: [31.0461, 34.8516],
+        LB: [33.8547, 35.8623],
+        AE: [23.4241, 53.8478],
+        FO: [61.8926, -6.9118],
+        IS: [64.9631, -19.0208],
+        CW: [12.1696, -68.9900],
+        AW: [12.5211, -69.9683],
+        KY: [19.3133, -81.2546],
+        BM: [32.3078, -64.7505],
+        RE: [-21.1151, 55.5364],
+        MQ: [14.6415, -61.0242],
+        GP: [16.2650, -61.5510],
+        PF: [-17.6797, -149.4068],
+        NC: [-20.9043, 165.6180],
+        FJ: [-17.7134, 178.0650],
+        TO: [-21.1789, -175.1982],
+        WS: [-13.7590, -172.1046],
+        GU: [13.4443, 144.7937],
+        MP: [15.0979, 145.6739],
+        VI: [18.3358, -64.8963],
+        PR: [18.2208, -66.5901],
+        PS: [31.9522, 35.2332]
+      };
+
+      var markers = [];
+      Object.keys(countryValues).forEach(function (code) {
+        var coords = pinCoords[code];
+        // Pin curated small/missing places whenever they have visits.
+        if (!coords) return;
+
+        var n = countryValues[code] || 0;
+        var place = countryNames[code] || code;
+        var label = n === 1 ? '1 unique visitor' : (n + ' unique visitors');
+        var r = maxVal > 0 ? Math.max(5, Math.min(11, 5 + Math.round((n / maxVal) * 6))) : 6;
+        markers.push({
+          name: place + ' — ' + label,
+          coords: coords,
+          style: {
+            initial: {
+              fill: '#ea580c',
+              stroke: '#ffffff',
+              strokeWidth: 1.75,
+              r: r
+            },
+            hover: {
+              fill: '#9a3412',
+              stroke: '#ffffff',
+              strokeWidth: 2,
+              r: r + 1
+            }
+          }
+        });
       });
 
       new jsVectorMap({
@@ -412,6 +473,19 @@ $chartPayload = [
           hover: {
             fillOpacity: 0.92,
             cursor: 'pointer'
+          }
+        },
+        markers: markers,
+        markerStyle: {
+          initial: {
+            fill: '#ea580c',
+            stroke: '#ffffff',
+            strokeWidth: 1.75,
+            r: 6
+          },
+          hover: {
+            fill: '#9a3412',
+            strokeWidth: 2
           }
         },
         series: {
@@ -549,15 +623,15 @@ $chartPayload = [
       });
     }
 
-    var statusCtx = document.getElementById('chart-blog-status');
-    if (statusCtx) {
-      new Chart(statusCtx, {
-        type: 'doughnut',
+    var topPostsCtx = document.getElementById('chart-top-posts');
+    if (topPostsCtx && data.topPosts && data.topPosts.labels && data.topPosts.labels.length) {
+      new Chart(topPostsCtx, {
+        type: 'pie',
         data: {
-          labels: data.blogStatus.labels,
+          labels: data.topPosts.labels,
           datasets: [{
-            data: data.blogStatus.values,
-            backgroundColor: ['#ea580c', '#cbd5e1', '#64748b'],
+            data: data.topPosts.values,
+            backgroundColor: ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c', '#64748b'],
             borderWidth: 0
           }]
         },
@@ -565,9 +639,25 @@ $chartPayload = [
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
-          },
-          cutout: '62%'
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 12,
+                font: { size: 11 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var n = ctx.parsed || 0;
+                  var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0) || 1;
+                  var pct = Math.round((n / total) * 100);
+                  return ' ' + n.toLocaleString() + ' views (' + pct + '%)';
+                }
+              }
+            }
+          }
         }
       });
     }
