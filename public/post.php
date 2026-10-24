@@ -350,17 +350,80 @@ $authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jp
 <script>
 (function () {
   var btn = document.getElementById('copy-post-link');
-  if (!btn) return;
-  btn.addEventListener('click', async function () {
+  if (btn) {
+    btn.addEventListener('click', async function () {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Copied';
+        setTimeout(function () {
+          btn.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i> Copy link';
+        }, 1600);
+      } catch (e) {
+        prompt('Copy this link:', window.location.href);
+      }
+    });
+  }
+
+  function guessLabel(pre) {
+    var explicit = pre.getAttribute('data-label');
+    if (explicit) return explicit;
+    var text = (pre.textContent || '').trim();
+    if (/^npx |^npm |^rea |^bun |^bunx /m.test(text)) return 'Terminal';
+    if (/^Understand |^Use REA |^Ask |^Clone /m.test(text)) return 'Agent prompt';
+    if (/^\{[\s\S]*\}$/.test(text) || /"type"\s*:/.test(text)) return 'JSON';
+    if (/^(import |const |function |export |export type )/m.test(text)) return 'TypeScript';
+    return 'Code';
+  }
+
+  async function copyText(text, button) {
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Copied';
-      setTimeout(function () {
-        btn.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i> Copy link';
-      }, 1600);
-    } catch (e) {
-      prompt('Copy this link:', window.location.href);
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.left = '-9999px';
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(area);
     }
+    var original = button.innerHTML;
+    button.classList.add('is-copied');
+    button.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Copied';
+    setTimeout(function () {
+      button.classList.remove('is-copied');
+      button.innerHTML = original;
+    }, 1600);
+  }
+
+  var prose = document.querySelector('.bp-prose');
+  if (!prose) return;
+  prose.querySelectorAll('pre').forEach(function (pre) {
+    if (pre.closest('.bp-codeblock')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'bp-codeblock';
+    var bar = document.createElement('div');
+    bar.className = 'bp-codeblock__bar';
+    var label = document.createElement('span');
+    label.className = 'bp-codeblock__label';
+    label.textContent = guessLabel(pre);
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'bp-codeblock__copy';
+    copyBtn.setAttribute('aria-label', 'Copy code');
+    copyBtn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i> Copy';
+    copyBtn.addEventListener('click', function () {
+      var code = pre.querySelector('code');
+      var text = (code ? code.textContent : pre.textContent) || '';
+      copyText(text.replace(/\n$/, ''), copyBtn);
+    });
+    bar.appendChild(label);
+    bar.appendChild(copyBtn);
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(bar);
+    wrap.appendChild(pre);
   });
 })();
 </script>

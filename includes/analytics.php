@@ -349,16 +349,17 @@ function trackPostViewDeviceSpecific(PDO $pdo, array &$post): void
 function analyticsDailyUniqueSeries(PDO $pdo, int $days = 30): array
 {
     $days = max(7, min(90, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
     $map = [];
     try {
         $stmt = $pdo->prepare("
             SELECT visit_date AS d, COUNT(*) AS c
             FROM site_daily_visitors
-            WHERE visit_date >= (CURDATE() - INTERVAL ? DAY)
+            WHERE visit_date >= ?
             GROUP BY visit_date
             ORDER BY visit_date ASC
         ");
-        $stmt->execute([$days - 1]);
+        $stmt->execute([$since]);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $map[(string) $row['d']] = (int) $row['c'];
         }
@@ -370,7 +371,8 @@ function analyticsDailyUniqueSeries(PDO $pdo, int $days = 30): array
     $values = [];
     for ($i = $days - 1; $i >= 0; $i--) {
         $d = date('Y-m-d', strtotime("-{$i} days"));
-        $labels[] = date('M j', strtotime($d));
+        // Mark the last point so Chart.js skip-ticks cannot hide “today”
+        $labels[] = $i === 0 ? (date('M j', strtotime($d)) . ' · today') : date('M j', strtotime($d));
         $values[] = $map[$d] ?? 0;
     }
 
@@ -384,16 +386,17 @@ function analyticsDailyUniqueSeries(PDO $pdo, int $days = 30): array
 function analyticsDailyBlogReadersSeries(PDO $pdo, int $days = 30): array
 {
     $days = max(7, min(90, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
     $map = [];
     try {
         $stmt = $pdo->prepare("
             SELECT DATE(viewed_at) AS d, COUNT(DISTINCT visitor_hash) AS c
             FROM blog_post_views
-            WHERE viewed_at >= (CURDATE() - INTERVAL ? DAY)
+            WHERE viewed_at >= ?
             GROUP BY DATE(viewed_at)
             ORDER BY d ASC
         ");
-        $stmt->execute([$days - 1]);
+        $stmt->execute([$since . ' 00:00:00']);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $map[(string) $row['d']] = (int) $row['c'];
         }
@@ -405,7 +408,7 @@ function analyticsDailyBlogReadersSeries(PDO $pdo, int $days = 30): array
     $values = [];
     for ($i = $days - 1; $i >= 0; $i--) {
         $d = date('Y-m-d', strtotime("-{$i} days"));
-        $labels[] = date('M j', strtotime($d));
+        $labels[] = $i === 0 ? (date('M j', strtotime($d)) . ' · today') : date('M j', strtotime($d));
         $values[] = $map[$d] ?? 0;
     }
 
@@ -610,17 +613,18 @@ function trackProjectEvent(PDO $pdo, int $projectId, string $eventType): bool
 function analyticsDailyProjectInterestSeries(PDO $pdo, int $days = 30): array
 {
     $days = max(7, min(90, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
     $viewMap = [];
     $clickMap = [];
     try {
         $stmt = $pdo->prepare("
             SELECT DATE(created_at) AS d, event_type, COUNT(DISTINCT visitor_hash) AS c
             FROM project_events
-            WHERE created_at >= (CURDATE() - INTERVAL ? DAY)
+            WHERE created_at >= ?
             GROUP BY DATE(created_at), event_type
             ORDER BY d ASC
         ");
-        $stmt->execute([$days - 1]);
+        $stmt->execute([$since . ' 00:00:00']);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $d = (string) $row['d'];
             if ($row['event_type'] === 'click') {
@@ -638,7 +642,7 @@ function analyticsDailyProjectInterestSeries(PDO $pdo, int $days = 30): array
     $clicks = [];
     for ($i = $days - 1; $i >= 0; $i--) {
         $d = date('Y-m-d', strtotime("-{$i} days"));
-        $labels[] = date('M j', strtotime($d));
+        $labels[] = $i === 0 ? (date('M j', strtotime($d)) . ' · today') : date('M j', strtotime($d));
         $views[] = $viewMap[$d] ?? 0;
         $clicks[] = $clickMap[$d] ?? 0;
     }

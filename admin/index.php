@@ -705,7 +705,20 @@ $chartPayload = [
             }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxRotation: 0,
+                autoSkip: true,
+                autoSkipPadding: 10,
+                callback: function (val, i, ticks) {
+                  var label = this.getLabelForValue(val);
+                  var last = ticks.length - 1;
+                  if (i === 0 || i === last || i % 4 === 0) return label;
+                  return '';
+                }
+              }
+            },
             y: {
               beginAtZero: true,
               ticks: { precision: 0 },
@@ -740,9 +753,11 @@ $chartPayload = [
               grid: { display: false },
               ticks: {
                 maxRotation: 0,
-                callback: function (val, i) {
+                callback: function (val, i, ticks) {
                   var label = this.getLabelForValue(val);
-                  return i % 3 === 0 ? label : '';
+                  var last = ticks.length - 1;
+                  if (i === 0 || i === last || i % 3 === 0) return label;
+                  return '';
                 }
               }
             },
