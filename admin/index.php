@@ -122,7 +122,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=10">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=12">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -200,6 +200,7 @@ $chartPayload = [
         <div class="dash-map-layout">
           <div class="dash-map-wrap">
             <div id="world-visitors-map" class="dash-world-map" role="img" aria-label="World map of unique visitors by country"></div>
+            <div class="dash-map-legend" id="world-visitors-legend" aria-label="Visitor count legend"></div>
           </div>
           <aside class="dash-country-list">
             <h3>All places</h3>
@@ -223,7 +224,6 @@ $chartPayload = [
               </ol>
             <?php endif; ?>
           </aside>
-          <div class="dash-map-legend" id="world-visitors-legend" aria-label="Visitor count legend"></div>
         </div>
       </section>
 
@@ -387,6 +387,8 @@ $chartPayload = [
       }
 
       // Discrete bands that grow with traffic: 1–3, 10–49, 1k–4.9k, 10k+ …
+      // Always span the full light→dark palette so the top country (e.g. USA)
+      // uses the darkest shade and that same swatch appears in the legend.
       function buildVisitorBuckets(peak) {
         var palette = ['#fecaca', '#f87171', '#ea580c', '#9a3412', '#431407'];
         peak = Math.max(1, Math.floor(peak || 1));
@@ -410,18 +412,22 @@ $chartPayload = [
 
         var buckets = [];
         var prev = 0;
+        var last = highs.length - 1;
         for (var b = 0; b < highs.length; b++) {
           var min = prev + 1;
           var max = highs[b];
           if (min > max) continue;
-          var isTop = b === highs.length - 1;
+          var isTop = b === last;
           var label = min === max
             ? formatBound(min)
             : (isTop ? formatBound(min) + '+' : formatBound(min) + '–' + formatBound(max));
+          var colorIndex = last <= 0
+            ? palette.length - 1
+            : Math.round(b * (palette.length - 1) / last);
           buckets.push({
             min: min,
             max: max,
-            color: palette[Math.min(b, palette.length - 1)],
+            color: palette[colorIndex],
             label: label
           });
           prev = max;
@@ -438,10 +444,12 @@ $chartPayload = [
       }
 
       var buckets = buildVisitorBuckets(maxVal);
-      var regionLevels = {};
+      // Exact hex fills — avoids jsVectorMap scale interpolation inventing
+      // colors (e.g. near-black USA) that never appear in the legend.
+      var regionColors = {};
       Object.keys(countryValues).forEach(function (code) {
         var bucket = bucketForCount(countryValues[code], buckets);
-        if (bucket) regionLevels[code] = buckets.indexOf(bucket) + 1;
+        if (bucket) regionColors[code] = bucket.color;
       });
 
       var legendEl = document.getElementById('world-visitors-legend');
@@ -547,10 +555,7 @@ $chartPayload = [
         });
       });
 
-      var levelScale = buckets.map(function (bucket) { return bucket.color; });
-      if (!levelScale.length) levelScale = ['#ea580c'];
-
-      new jsVectorMap({
+      var map = new jsVectorMap({
         selector: '#world-visitors-map',
         map: 'world',
         backgroundColor: 'transparent',
@@ -582,16 +587,6 @@ $chartPayload = [
             strokeWidth: 2
           }
         },
-        series: {
-          regions: [{
-            attribute: 'fill',
-            values: regionLevels,
-            scale: levelScale,
-            min: 1,
-            max: Math.max(1, buckets.length),
-            normalizeFunction: 'linear'
-          }]
-        },
         onRegionTooltipShow: function (event, tooltip, code) {
           var n = countryValues[code] || 0;
           var label = n === 1 ? '1 unique visitor' : (n + ' unique visitors');
@@ -599,6 +594,14 @@ $chartPayload = [
             (tooltip.text() || code) + ' — ' + label,
             true
           );
+        }
+      });
+
+      // Paint each country with the same hex as its legend swatch.
+      Object.keys(regionColors).forEach(function (code) {
+        var region = map.regions && map.regions[code];
+        if (region && region.element && typeof region.element.setStyle === 'function') {
+          region.element.setStyle('fill', regionColors[code]);
         }
       });
 

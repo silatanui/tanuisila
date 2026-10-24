@@ -524,7 +524,9 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 .dash-map-wrap {
   min-width: 0;
   width: 100%;
-  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .dash-world-map {
@@ -536,6 +538,8 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
     #f8fafc;
   border: 1px solid var(--line);
   overflow: hidden;
+  position: relative;
+  z-index: 0;
 }
 
 .dash-world-map svg {
@@ -544,40 +548,42 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 }
 
 .dash-map-legend {
-  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 18px;
-  padding: 12px 0 0;
-  border-top: 1px solid var(--line);
-  background: #fff;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  background: var(--panel-alt, #f8fafc);
+  border: 1px solid var(--line);
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 .dash-map-legend__items {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 16px;
+  gap: 8px 12px;
 }
 
 .dash-map-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: 7px;
+  padding: 4px 8px 4px 6px;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1;
+  background: #fff;
+  border: 1px solid var(--line);
 }
 
 .dash-map-legend__swatch {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   flex-shrink: 0;
 }
@@ -585,8 +591,8 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 .dash-map-legend__item em {
   font-style: normal;
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  font-weight: 700;
+  color: var(--text);
+  font-weight: 800;
 }
 
 .dash-map-legend__pin {
@@ -678,6 +684,11 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
   margin-bottom: 18px;
 }
 
+.dash-chart-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .dash-chart-card--wide {
   grid-column: 1 / -1;
 }
@@ -695,29 +706,32 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 }
 
 .dash-chart-wrap--donut {
-  height: 220px;
+  height: 200px;
   width: 100%;
-  max-width: 220px;
+  max-width: 200px;
   margin: 0;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .dash-pie {
   display: flex;
-  align-items: center;
-  gap: 18px 22px;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 20px;
+  min-width: 0;
+  width: 100%;
 }
 
 .dash-pie-legend {
   list-style: none;
   margin: 0;
   padding: 0;
-  flex: 1 1 180px;
+  flex: 1 1 0;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden;
 }
 
 .dash-pie-legend li {
@@ -727,6 +741,14 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
   margin: 0;
   padding: 0;
   border: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dash-pie-legend li > div {
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
 }
 
 .dash-pie-legend__swatch {
@@ -738,15 +760,17 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 }
 
 .dash-pie-legend strong {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   font-size: 0.84rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .dash-pie-legend span {
@@ -814,22 +838,11 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
     grid-template-columns: minmax(0, 1fr) 240px;
   }
 
-  .dash-map-wrap {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
   .dash-country-list {
-    grid-column: 2;
-    grid-row: 1;
     border-left: 1px solid var(--line);
     padding-left: 18px;
-    max-height: min(68vh, 640px);
-  }
-
-  .dash-map-legend {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    max-height: none;
+    align-self: stretch;
   }
 }
 
