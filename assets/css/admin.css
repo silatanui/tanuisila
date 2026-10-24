@@ -789,9 +789,25 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 
 .dash-split {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 1.15fr 1fr;
   gap: 18px;
   margin-bottom: 18px;
+  align-items: start;
+}
+
+.dash-split .table-wrap {
+  overflow-x: auto;
+}
+
+.dash-split .data-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.dash-split .data-table th,
+.dash-split .data-table td {
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .dash-feed {

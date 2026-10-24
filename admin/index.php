@@ -145,7 +145,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=13">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=14">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -361,39 +361,6 @@ $chartPayload = [
                         <?php else: ?>
                           <span class="muted-copy">—</span>
                         <?php endif; ?>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          <?php endif; ?>
-        </div>
-
-        <div class="panel">
-          <div class="admin-list-head">
-            <h2 style="margin:0;"><i class="fa-solid fa-fire" style="color:var(--primary);"></i> Top posts by views</h2>
-            <a href="blog.php" class="btn small">Manage blog</a>
-          </div>
-          <?php if (empty($topPosts)): ?>
-            <p class="muted-copy">No published posts yet.</p>
-          <?php else: ?>
-            <div class="table-wrap">
-              <table class="data-table" style="width:100%;">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Views</th>
-                    <th class="no-sort">Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($topPosts as $p): ?>
-                    <tr>
-                      <td><strong><?php echo htmlspecialchars($p['title']); ?></strong></td>
-                      <td data-order="<?php echo (int) $p['views']; ?>"><?php echo number_format((int) $p['views']); ?></td>
-                      <td class="actions-cell">
-                        <a class="btn small" href="../public/post.php?slug=<?php echo urlencode($p['slug']); ?>" target="_blank" rel="noopener">View</a>
                       </td>
                     </tr>
                   <?php endforeach; ?>
