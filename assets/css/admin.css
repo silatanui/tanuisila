@@ -543,22 +543,44 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 
 .dash-map-legend {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  gap: 12px 18px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
 }
 
-.dash-map-legend__bar {
-  flex: 1;
-  height: 12px;
-  max-width: 320px;
-  background: linear-gradient(90deg, #fecaca 0%, #f87171 25%, #ea580c 55%, #9a3412 80%, #431407 100%);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+.dash-map-legend__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.dash-map-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.dash-map-legend__swatch {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+}
+
+.dash-map-legend__item em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .dash-map-legend__pin {
@@ -568,13 +590,12 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
   margin-left: auto;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
-  text-transform: none;
   font-weight: 700;
   color: var(--muted);
   white-space: nowrap;
 }
 
-.dash-map-legend__pin i {
+.dash-map-legend__pin > i {
   font-size: 0.55rem;
   color: #ea580c;
 }
@@ -586,6 +607,7 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
 .dash-country-list {
   border-top: 1px solid var(--line);
   padding-top: 14px;
+  margin-top: 4px;
   max-height: min(42vh, 360px);
   overflow: auto;
 }

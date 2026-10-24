@@ -128,7 +128,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=8">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=9">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -196,8 +196,9 @@ $chartPayload = [
           <div>
             <h2 style="margin:0;">Visitors by country</h2>
             <p class="dash-chart-card__hint">
-              Darker = more unique visitors (last 30 days). Orange dots mark small or missing places
-              (e.g. Hong Kong, Singapore) that the world outline cannot show clearly. Location is approximate from IP.
+              Squares show visitor bands that auto-scale with traffic (last 30 days).
+              Orange dots mark small or missing places (e.g. Hong Kong) that the outline cannot shade clearly.
+              Location is approximate from IP.
             </p>
           </div>
           <span class="dash-map-total"><?php echo number_format((int) $countryBreakdown['total']); ?> located</span>
@@ -205,12 +206,7 @@ $chartPayload = [
         <div class="dash-map-layout">
           <div class="dash-map-wrap">
             <div id="world-visitors-map" class="dash-world-map" role="img" aria-label="World map of unique visitors by country"></div>
-            <div class="dash-map-legend" aria-hidden="true">
-              <span>Fewer</span>
-              <span class="dash-map-legend__bar"></span>
-              <span>More</span>
-              <span class="dash-map-legend__pin" title="Small places"><i class="fa-solid fa-circle"></i> Dot = small place</span>
-            </div>
+            <div class="dash-map-legend" id="world-visitors-legend" aria-label="Visitor count legend"></div>
           </div>
           <aside class="dash-country-list">
             <h3>All places</h3>
@@ -369,6 +365,99 @@ $chartPayload = [
         if (countryValues[k] > maxVal) maxVal = countryValues[k];
       });
 
+      function niceCeil(x) {
+        if (x <= 1) return 1;
+        var exp = Math.floor(Math.log10(x));
+        var base = Math.pow(10, exp);
+        var f = x / base;
+        var nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+        return Math.round(nice * base);
+      }
+
+      function formatBound(n) {
+        if (n >= 1000000) {
+          var m = n / 1000000;
+          return (Math.abs(m - Math.round(m)) < 1e-9 ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '')) + 'M';
+        }
+        if (n >= 1000) {
+          var k = n / 1000;
+          return (Math.abs(k - Math.round(k)) < 1e-9 ? String(Math.round(k)) : k.toFixed(1).replace(/\.0$/, '')) + 'k';
+        }
+        return String(n);
+      }
+
+      // Discrete bands that grow with traffic: 1–3, 10–49, 1k–4.9k, 10k+ …
+      function buildVisitorBuckets(peak) {
+        var palette = ['#fecaca', '#f87171', '#ea580c', '#9a3412', '#431407'];
+        peak = Math.max(1, Math.floor(peak || 1));
+        var highs = [];
+        if (peak === 1) {
+          highs = [1];
+        } else if (peak <= 5) {
+          for (var i = 1; i <= peak; i++) highs.push(i);
+        } else {
+          var steps = 5;
+          for (var s = 1; s <= steps; s++) {
+            highs.push(niceCeil(Math.pow(peak, s / steps)));
+          }
+          highs[highs.length - 1] = Math.max(highs[highs.length - 1], peak);
+          var uniq = [];
+          highs.forEach(function (h) {
+            if (!uniq.length || uniq[uniq.length - 1] !== h) uniq.push(h);
+          });
+          highs = uniq;
+        }
+
+        var buckets = [];
+        var prev = 0;
+        for (var b = 0; b < highs.length; b++) {
+          var min = prev + 1;
+          var max = highs[b];
+          if (min > max) continue;
+          var isTop = b === highs.length - 1;
+          var label = min === max
+            ? formatBound(min)
+            : (isTop ? formatBound(min) + '+' : formatBound(min) + '–' + formatBound(max));
+          buckets.push({
+            min: min,
+            max: max,
+            color: palette[Math.min(b, palette.length - 1)],
+            label: label
+          });
+          prev = max;
+        }
+        return buckets;
+      }
+
+      function bucketForCount(n, buckets) {
+        if (n <= 0 || !buckets.length) return null;
+        for (var i = 0; i < buckets.length; i++) {
+          if (n <= buckets[i].max) return buckets[i];
+        }
+        return buckets[buckets.length - 1];
+      }
+
+      var buckets = buildVisitorBuckets(maxVal);
+      var regionLevels = {};
+      Object.keys(countryValues).forEach(function (code) {
+        var bucket = bucketForCount(countryValues[code], buckets);
+        if (bucket) regionLevels[code] = buckets.indexOf(bucket) + 1;
+      });
+
+      var legendEl = document.getElementById('world-visitors-legend');
+      if (legendEl) {
+        var itemsHtml = buckets.map(function (bucket) {
+          return '<span class="dash-map-legend__item">' +
+            '<i class="dash-map-legend__swatch" style="background:' + bucket.color + '"></i>' +
+            '<em>' + bucket.label + '</em>' +
+            '</span>';
+        }).join('');
+        legendEl.innerHTML =
+          '<div class="dash-map-legend__items">' + itemsHtml + '</div>' +
+          '<span class="dash-map-legend__pin" title="Small places">' +
+          '<i class="fa-solid fa-circle"></i> Dot = small place</span>';
+      }
+
       // Coords for places missing from (or too small on) the world outline.
       // jsVectorMap world.js omits HK, SG, MO, MT, and many islands.
       var pinCoords = {
@@ -435,19 +524,21 @@ $chartPayload = [
         var n = countryValues[code] || 0;
         var place = countryNames[code] || code;
         var label = n === 1 ? '1 unique visitor' : (n + ' unique visitors');
+        var bucket = bucketForCount(n, buckets);
+        var fill = bucket ? bucket.color : '#ea580c';
         var r = maxVal > 0 ? Math.max(5, Math.min(11, 5 + Math.round((n / maxVal) * 6))) : 6;
         markers.push({
           name: place + ' — ' + label,
           coords: coords,
           style: {
             initial: {
-              fill: '#ea580c',
+              fill: fill,
               stroke: '#ffffff',
               strokeWidth: 1.75,
               r: r
             },
             hover: {
-              fill: '#9a3412',
+              fill: '#0f172a',
               stroke: '#ffffff',
               strokeWidth: 2,
               r: r + 1
@@ -455,6 +546,9 @@ $chartPayload = [
           }
         });
       });
+
+      var levelScale = buckets.map(function (bucket) { return bucket.color; });
+      if (!levelScale.length) levelScale = ['#ea580c'];
 
       new jsVectorMap({
         selector: '#world-visitors-map',
@@ -484,16 +578,18 @@ $chartPayload = [
             r: 6
           },
           hover: {
-            fill: '#9a3412',
+            fill: '#0f172a',
             strokeWidth: 2
           }
         },
         series: {
           regions: [{
             attribute: 'fill',
-            values: countryValues,
-            scale: ['#fecaca', '#f87171', '#ea580c', '#9a3412', '#431407'],
-            normalizeFunction: 'polynomial'
+            values: regionLevels,
+            scale: levelScale,
+            min: 1,
+            max: Math.max(1, buckets.length),
+            normalizeFunction: 'linear'
           }]
         },
         onRegionTooltipShow: function (event, tooltip, code) {
