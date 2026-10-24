@@ -33,3 +33,4 @@ node_modules/
 # Logs & Temporary files
 *.log
 scratch/
+admin-cockpit/.preview_token
