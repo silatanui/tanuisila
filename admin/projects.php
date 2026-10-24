@@ -86,7 +86,7 @@ $projects = $pdo->query('SELECT * FROM projects ORDER BY sort_order DESC, id DES
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
   <style>
     /* Drag & Drop Zone Styles */
@@ -176,24 +176,109 @@ $projects = $pdo->query('SELECT * FROM projects ORDER BY sort_order DESC, id DES
         <div class="error-box"><i class="fa-solid fa-triangle-exclamation"></i> <?php echo htmlspecialchars($error); ?></div>
       <?php endif; ?>
 
+      <?php $projectFormOpen = !empty($editingProject) || !empty($error); ?>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- SAVED PROJECTS LIST                                    -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="panel">
+        <div class="admin-list-head">
+          <h2><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> Saved Projects (<?php echo count($projects); ?>)</h2>
+          <button type="button" class="btn primary admin-form-toggle" data-form-target="project-form-panel" data-label-show="Add Project" data-label-hide="Hide Form" aria-controls="project-form-panel">
+            <i class="fa-solid fa-plus"></i> Add Project
+          </button>
+        </div>
+
+        <?php if (empty($projects)): ?>
+          <p style="color: var(--muted); font-size: 0.9rem;">No projects saved yet. Click “Add Project” to create one.</p>
+        <?php else: ?>
+          <div class="table-wrap">
+            <table id="projects-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[4,"desc"]]'>
+              <thead>
+                <tr>
+                  <th class="no-sort">Image</th>
+                  <th>Title</th>
+                  <th>Tags</th>
+                  <th>URL</th>
+                  <th>Sort</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($projects as $item): ?>
+                  <?php
+                    $itemThumb = '';
+                    if (!empty($item['image'])) {
+                      $imgVal = $item['image'];
+                      if (preg_match('#^https?://#i', $imgVal)) {
+                        $itemThumb = $imgVal;
+                      } elseif (strpos($imgVal, '/') === 0) {
+                        $itemThumb = $imgVal;
+                      } else {
+                        $itemThumb = '../public/' . $imgVal;
+                      }
+                    }
+                    $desc = (string)($item['description'] ?? '');
+                  ?>
+                  <tr<?php echo ($editingProject && (int)$editingProject['id'] === (int)$item['id']) ? ' style="background:rgba(234,88,12,0.04);"' : ''; ?>>
+                    <td>
+                      <?php if (!empty($itemThumb)): ?>
+                        <img src="<?php echo htmlspecialchars($itemThumb); ?>?v=<?php echo time(); ?>" class="thumb-mini" alt="">
+                      <?php else: ?>
+                        <div class="thumb-placeholder"><i class="fa-solid fa-code"></i></div>
+                      <?php endif; ?>
+                    </td>
+                    <td>
+                      <strong><?php echo htmlspecialchars($item['title']); ?></strong>
+                      <?php if ($editingProject && (int)$editingProject['id'] === (int)$item['id']): ?>
+                        <div style="font-size:0.7rem;font-weight:800;color:var(--primary);text-transform:uppercase;margin-top:2px;">Editing</div>
+                      <?php endif; ?>
+                      <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;"><?php echo htmlspecialchars(strlen($desc) > 110 ? substr($desc, 0, 107) . '…' : $desc); ?></div>
+                    </td>
+                    <td><?php echo htmlspecialchars($item['tags'] ?: '—'); ?></td>
+                    <td>
+                      <?php if (!empty($item['url'])): ?>
+                        <a href="<?php echo htmlspecialchars($item['url']); ?>" target="_blank" rel="noopener" style="font-family:monospace;font-size:0.78rem;color:var(--primary);"><?php echo htmlspecialchars(preg_replace('#^https?://#', '', rtrim($item['url'], '/'))); ?></a>
+                      <?php else: ?>
+                        —
+                      <?php endif; ?>
+                    </td>
+                    <td data-order="<?php echo (int) $item['sort_order']; ?>">#<?php echo (int) $item['sort_order']; ?></td>
+                    <td class="actions-cell">
+                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>#project-form-panel"><i class="fa-solid fa-pen"></i> Edit</a>
+                      <?php if (!empty($item['url'])): ?>
+                        <a class="btn small" href="<?php echo htmlspecialchars($item['url']); ?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                      <?php endif; ?>
+                      <a class="btn danger small" href="?delete=projects&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete project: <?php echo htmlspecialchars(addslashes($item['title'])); ?>?');"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </section>
+
+
       <!-- ═══════════════════════════════════════════════════════ -->
       <!-- PROJECT FORM (ADD / EDIT)                              -->
       <!-- ═══════════════════════════════════════════════════════ -->
-      <section class="panel">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h2 style="margin: 0;">
+      <section class="panel admin-form-panel" id="project-form-panel"<?php echo $projectFormOpen ? "" : " hidden"; ?>>
+        <div class="admin-list-head">
+          <h2>
             <?php if ($editingProject): ?>
-              <i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> Edit Project #<?php echo (int) $editingProject['id']; ?>
+              <i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> Edit Project
             <?php else: ?>
-              <i class="fa-solid fa-plus" style="color: var(--primary);"></i> Add New Project
+              <i class="fa-solid fa-plus" style="color: var(--primary);"></i> New Project
             <?php endif; ?>
           </h2>
-
-          <?php if ($editingProject): ?>
-            <a href="projects.php" class="btn small" style="background: transparent; border: 1px solid var(--line);">
-              <i class="fa-solid fa-xmark"></i> Cancel Edit
-            </a>
-          <?php endif; ?>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <?php if ($editingProject): ?>
+              <a href="projects.php" class="btn small">Cancel</a>
+            <?php else: ?>
+              <button type="button" class="btn small admin-form-close" data-form-target="project-form-panel">Hide</button>
+            <?php endif; ?>
+          </div>
         </div>
 
         <?php if ($editingProject): ?>
@@ -293,84 +378,6 @@ $projects = $pdo->query('SELECT * FROM projects ORDER BY sort_order DESC, id DES
             <?php endif; ?>
           </div>
         </form>
-      </section>
-
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- SAVED PROJECTS LIST                                    -->
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <section class="panel">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h2 style="margin: 0;"><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> Saved Projects (<?php echo count($projects); ?>)</h2>
-        </div>
-
-        <?php if (empty($projects)): ?>
-          <p style="color: var(--muted); font-size: 0.9rem;">No projects saved yet. Add your first project above.</p>
-        <?php else: ?>
-          <div class="table-wrap">
-            <table id="projects-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[4,"desc"]]'>
-              <thead>
-                <tr>
-                  <th class="no-sort">Image</th>
-                  <th>Title</th>
-                  <th>Tags</th>
-                  <th>URL</th>
-                  <th>Sort</th>
-                  <th class="no-sort">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($projects as $item): ?>
-                  <?php
-                    $itemThumb = '';
-                    if (!empty($item['image'])) {
-                      $imgVal = $item['image'];
-                      if (preg_match('#^https?://#i', $imgVal)) {
-                        $itemThumb = $imgVal;
-                      } elseif (strpos($imgVal, '/') === 0) {
-                        $itemThumb = $imgVal;
-                      } else {
-                        $itemThumb = '../public/' . $imgVal;
-                      }
-                    }
-                    $desc = (string)($item['description'] ?? '');
-                  ?>
-                  <tr<?php echo ($editingProject && (int)$editingProject['id'] === (int)$item['id']) ? ' style="background:rgba(234,88,12,0.04);"' : ''; ?>>
-                    <td>
-                      <?php if (!empty($itemThumb)): ?>
-                        <img src="<?php echo htmlspecialchars($itemThumb); ?>?v=<?php echo time(); ?>" class="thumb-mini" alt="">
-                      <?php else: ?>
-                        <div class="thumb-placeholder"><i class="fa-solid fa-code"></i></div>
-                      <?php endif; ?>
-                    </td>
-                    <td>
-                      <strong><?php echo htmlspecialchars($item['title']); ?></strong>
-                      <?php if ($editingProject && (int)$editingProject['id'] === (int)$item['id']): ?>
-                        <div style="font-size:0.7rem;font-weight:800;color:var(--primary);text-transform:uppercase;margin-top:2px;">Editing</div>
-                      <?php endif; ?>
-                      <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;"><?php echo htmlspecialchars(strlen($desc) > 110 ? substr($desc, 0, 107) . '…' : $desc); ?></div>
-                    </td>
-                    <td><?php echo htmlspecialchars($item['tags'] ?: '—'); ?></td>
-                    <td>
-                      <?php if (!empty($item['url'])): ?>
-                        <a href="<?php echo htmlspecialchars($item['url']); ?>" target="_blank" rel="noopener" style="font-family:monospace;font-size:0.78rem;color:var(--primary);"><?php echo htmlspecialchars(preg_replace('#^https?://#', '', rtrim($item['url'], '/'))); ?></a>
-                      <?php else: ?>
-                        —
-                      <?php endif; ?>
-                    </td>
-                    <td data-order="<?php echo (int) $item['sort_order']; ?>">#<?php echo (int) $item['sort_order']; ?></td>
-                    <td class="actions-cell">
-                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
-                      <?php if (!empty($item['url'])): ?>
-                        <a class="btn small" href="<?php echo htmlspecialchars($item['url']); ?>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                      <?php endif; ?>
-                      <a class="btn danger small" href="?delete=projects&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete project: <?php echo htmlspecialchars(addslashes($item['title'])); ?>?');"><i class="fa-solid fa-trash"></i></a>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
       </section>
 
     </main>

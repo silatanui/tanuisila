@@ -118,7 +118,7 @@ $posts = $pdo->query('
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
   <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js" referrerpolicy="origin"></script>
   <script>
@@ -263,17 +263,100 @@ $posts = $pdo->query('
       <?php if (!empty($notice)): ?><div class="notice"><i class="fa-solid fa-circle-check"></i> <?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
       <?php if (!empty($error)): ?><div class="error-box"><i class="fa-solid fa-triangle-exclamation"></i> <?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
+      <?php $blogFormOpen = !empty($editingPost) || !empty($error); ?>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- ALL BLOG POSTS LIST                                     -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <section class="panel">
+        <div class="admin-list-head">
+          <h2><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> All Blog Posts (<?php echo count($posts); ?>)</h2>
+          <button type="button" class="btn primary admin-form-toggle" data-form-target="post-editor-panel" data-label-show="Add Blog Post" data-label-hide="Hide Form" aria-controls="post-editor-panel">
+            <i class="fa-solid fa-plus"></i> Add Blog Post
+          </button>
+        </div>
+
+        <?php if (empty($posts)): ?>
+          <div style="padding: 40px; text-align: center; color: var(--muted);">
+            <i class="fa-regular fa-newspaper" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+            <p style="margin: 0; font-size: 1rem; font-weight: 600;">No blog posts yet. Click “Add Blog Post” to create one.</p>
+          </div>
+        <?php else: ?>
+          <div class="table-wrap">
+            <table id="blog-posts-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[3,"desc"]]'>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Category</th>
+                  <th>Published</th>
+                  <th>Comments</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($posts as $post):
+                  $editUrl = 'blog.php?edit=' . (int)$post['id'] . '&v=' . time() . '#post-editor-panel';
+                  $statusClass = htmlspecialchars($post['status'] ?? 'draft');
+                ?>
+                  <tr>
+                    <td>
+                      <strong><?php echo htmlspecialchars($post['title']); ?></strong>
+                      <?php if (!empty($post['excerpt'])): ?>
+                        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px; max-width: 360px;">
+                          <?php echo htmlspecialchars(substr($post['excerpt'], 0, 100)) . (strlen($post['excerpt']) > 100 ? '…' : ''); ?>
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                    <td>
+                      <span class="status-pill <?php echo $statusClass; ?>">● <?php echo htmlspecialchars($post['status']); ?></span>
+                      <?php if (!empty($post['reading_time'])): ?>
+                        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+                          <i class="fa-regular fa-clock"></i> <?php echo (int)$post['reading_time']; ?> min
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                    <td><?php echo htmlspecialchars($post['category'] ?? 'General'); ?></td>
+                    <td data-order="<?php echo !empty($post['published_at']) ? strtotime($post['published_at']) : 0; ?>">
+                      <?php echo !empty($post['published_at']) ? date('M d, Y', strtotime($post['published_at'])) : '—'; ?>
+                    </td>
+                    <td data-order="<?php echo (int)($post['total_comments'] ?? 0); ?>">
+                      <a href="comments.php?post_id=<?php echo (int)$post['id']; ?>" style="text-decoration: none; color: var(--text); font-weight: 600;">
+                        <i class="fa-solid fa-comments" style="color: var(--primary);"></i>
+                        <?php echo (int)($post['total_comments'] ?? 0); ?>
+                        <?php if (!empty($post['pending_comments'])): ?>
+                          <span style="color: var(--warning); font-weight: 800;">(<?php echo (int)$post['pending_comments']; ?>)</span>
+                        <?php endif; ?>
+                      </a>
+                    </td>
+                    <td class="actions-cell">
+                      <a class="btn small" href="<?php echo htmlspecialchars($editUrl); ?>" title="Edit post"><i class="fa-solid fa-pen"></i> Edit</a>
+                      <a class="btn small danger" href="?delete=blog_posts&id=<?php echo (int) $post['id']; ?>" onclick="return confirm('Delete post &quot;<?php echo htmlspecialchars(addslashes($post['title'])); ?>&quot; permanently?');" title="Delete post"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </section>
+
       <!-- ═══════════════════════════════════════════════════════ -->
       <!-- BLOG POST EDITOR PANEL                                  -->
       <!-- ═══════════════════════════════════════════════════════ -->
-      <section class="panel" id="post-editor-panel">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line);">
-          <h2 style="margin: 0;"><?php echo $editingPost ? '✏️ Edit Blog Post' : '📝 Create Blog Post'; ?></h2>
-          <?php if ($editingPost): ?>
-            <span style="font-size: 0.85rem; color: var(--muted);">
-              Editing: <strong><?php echo htmlspecialchars($editingPost['title']); ?></strong> (ID: <?php echo (int)$editingPost['id']; ?>)
-            </span>
-          <?php endif; ?>
+      <section class="panel admin-form-panel" id="post-editor-panel"<?php echo $blogFormOpen ? "" : " hidden"; ?>>
+        <div class="admin-list-head">
+          <h2><?php echo $editingPost ? 'Edit Blog Post' : 'New Blog Post'; ?></h2>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <?php if ($editingPost): ?>
+              <span style="font-size: 0.85rem; color: var(--muted);">
+                Editing: <strong><?php echo htmlspecialchars($editingPost['title']); ?></strong>
+              </span>
+              <a href="blog.php" class="btn small">Cancel</a>
+            <?php else: ?>
+              <button type="button" class="btn small admin-form-close" data-form-target="post-editor-panel">Hide</button>
+            <?php endif; ?>
+          </div>
         </div>
 
         <!-- ═══ MASTER AI AUTOMATION BANNER ═══ -->
@@ -477,81 +560,6 @@ $posts = $pdo->query('
         </form>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- ALL BLOG POSTS LIST                                     -->
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <section class="panel">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line);">
-          <h2 style="margin: 0;"><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> All Blog Posts (<?php echo count($posts); ?>)</h2>
-          <a href="blog.php#post-editor-panel" class="btn small" style="background: var(--primary); color: #fff; border-color: var(--primary);">
-            <i class="fa-solid fa-plus"></i> New Post
-          </a>
-        </div>
-
-        <?php if (empty($posts)): ?>
-          <div style="padding: 40px; text-align: center; color: var(--muted);">
-            <i class="fa-regular fa-newspaper" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
-            <p style="margin: 0; font-size: 1rem; font-weight: 600;">No blog posts yet. Write your first article above!</p>
-          </div>
-        <?php else: ?>
-          <div class="table-wrap">
-            <table id="blog-posts-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[3,"desc"]]'>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Status</th>
-                  <th>Category</th>
-                  <th>Published</th>
-                  <th>Comments</th>
-                  <th class="no-sort">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($posts as $post):
-                  $editUrl = 'blog.php?edit=' . (int)$post['id'] . '&v=' . time() . '#post-editor-panel';
-                  $statusClass = htmlspecialchars($post['status'] ?? 'draft');
-                ?>
-                  <tr>
-                    <td>
-                      <strong><?php echo htmlspecialchars($post['title']); ?></strong>
-                      <?php if (!empty($post['excerpt'])): ?>
-                        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px; max-width: 360px;">
-                          <?php echo htmlspecialchars(substr($post['excerpt'], 0, 100)) . (strlen($post['excerpt']) > 100 ? '…' : ''); ?>
-                        </div>
-                      <?php endif; ?>
-                    </td>
-                    <td>
-                      <span class="status-pill <?php echo $statusClass; ?>">● <?php echo htmlspecialchars($post['status']); ?></span>
-                      <?php if (!empty($post['reading_time'])): ?>
-                        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-                          <i class="fa-regular fa-clock"></i> <?php echo (int)$post['reading_time']; ?> min
-                        </div>
-                      <?php endif; ?>
-                    </td>
-                    <td><?php echo htmlspecialchars($post['category'] ?? 'General'); ?></td>
-                    <td data-order="<?php echo !empty($post['published_at']) ? strtotime($post['published_at']) : 0; ?>">
-                      <?php echo !empty($post['published_at']) ? date('M d, Y', strtotime($post['published_at'])) : '—'; ?>
-                    </td>
-                    <td data-order="<?php echo (int)($post['total_comments'] ?? 0); ?>">
-                      <a href="comments.php?post_id=<?php echo (int)$post['id']; ?>" style="text-decoration: none; color: var(--text); font-weight: 600;">
-                        <i class="fa-solid fa-comments" style="color: var(--primary);"></i>
-                        <?php echo (int)($post['total_comments'] ?? 0); ?>
-                        <?php if (!empty($post['pending_comments'])): ?>
-                          <span style="color: var(--warning); font-weight: 800;">(<?php echo (int)$post['pending_comments']; ?>)</span>
-                        <?php endif; ?>
-                      </a>
-                    </td>
-                    <td class="actions-cell">
-                      <a class="btn small" href="<?php echo htmlspecialchars($editUrl); ?>" title="Edit post"><i class="fa-solid fa-pen"></i> Edit</a>
-                      <a class="btn small danger" href="?delete=blog_posts&id=<?php echo (int) $post['id']; ?>" onclick="return confirm('Delete post &quot;<?php echo htmlspecialchars(addslashes($post['title'])); ?>&quot; permanently?');" title="Delete post"><i class="fa-solid fa-trash"></i></a>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </section>
     </main>
   </div>
 
@@ -1029,10 +1037,12 @@ $posts = $pdo->query('
       }
     });
 
-    // Scroll to editor when editing / after save
+    // Ensure editor panel is visible when editing / after save
     if (window.__BLOG_IS_EDITING || window.location.hash === '#post-editor-panel') {
       const panel = document.getElementById('post-editor-panel');
       if (panel) {
+        panel.removeAttribute('hidden');
+        panel.classList.add('is-open');
         setTimeout(function() {
           panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);

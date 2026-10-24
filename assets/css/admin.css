@@ -412,6 +412,35 @@ input, textarea, select, button { font: inherit; border-radius: 0; }
   color: var(--text);
 }
 
+/* List-first admin pattern: toolbar + collapsible form */
+.admin-list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-list-head h2 {
+  margin: 0;
+}
+
+.admin-form-panel[hidden] {
+  display: none !important;
+}
+
+.admin-form-panel.is-open {
+  animation: admin-form-in 0.25s ease;
+}
+
+@keyframes admin-form-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* ── STATS & KPI GRID ────────────────────────────────────────── */
 .stats-grid {
   display: grid;

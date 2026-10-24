@@ -79,7 +79,7 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
@@ -92,8 +92,62 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
       <?php if (!empty($notice)): ?><div class="notice"><?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
       <?php if (!empty($error)): ?><div class="error-box"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
+      <?php $experience_form_panel_open = !empty($editingEntry) || !empty($error); ?>
+
+
       <section class="panel">
-        <h2><?php echo $editingEntry ? '✏️ Edit Experience' : '📝 Add Experience'; ?></h2>
+        <div class="admin-list-head">
+          <h2>Saved entries</h2>
+          <button type="button" class="btn primary admin-form-toggle" data-form-target="experience-form-panel" data-label-show="Add Experience" data-label-hide="Hide Form" aria-controls="experience-form-panel">
+            <i class="fa-solid fa-plus"></i> Add Experience
+          </button>
+        </div>
+        <?php if (empty($experience)): ?>
+          <p class="muted-copy">No work experience entries added yet.</p>
+        <?php else: ?>
+          <div class="table-wrap">
+            <table id="experience-table" class="data-table display" style="width:100%" data-page-length="10">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>Role</th>
+                  <th>Location</th>
+                  <th>Period</th>
+                  <th>Description</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($experience as $item): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($item['company']); ?></td>
+                    <td><?php echo htmlspecialchars($item['role_name'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['location'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['start_date'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></td>
+                    <td><?php echo nl2br(htmlspecialchars($item['description'] ?: '-')); ?></td>
+                    <td class="actions-cell">
+                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>#experience-form-panel"><i class="fa-solid fa-pen"></i> Edit</a>
+                      <a class="btn danger small" href="?delete=experience&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </section>
+
+      <section class="panel admin-form-panel" id="experience-form-panel"<?php echo $experience_form_panel_open ? "" : " hidden"; ?>>
+        <div class="admin-list-head">
+          <h2><?php echo $editingEntry ? 'Edit Experience' : 'New Experience'; ?></h2>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <?php if (!empty($editingEntry)): ?>
+              <a href="experience.php" class="btn small">Cancel</a>
+            <?php else: ?>
+              <button type="button" class="btn small admin-form-close" data-form-target="experience-form-panel">Hide</button>
+            <?php endif; ?>
+          </div>
+        </div>
         <?php if ($editingEntry): ?><div style="background: rgba(15, 118, 110, 0.08); border: 1px solid rgba(15, 118, 110, 0.2); padding: 12px; margin-bottom: 16px; font-size: 0.9rem; color: var(--text);">Editing: <strong><?php echo htmlspecialchars($editingEntry['company']); ?></strong> (ID: <?php echo (int)$editingEntry['id']; ?>)</div><?php endif; ?>
         <form method="post">
           <div class="grid-form">
@@ -135,42 +189,6 @@ $experience = $pdo->query('SELECT * FROM experience ORDER BY sort_order DESC, id
         </form>
       </section>
 
-      <section class="panel">
-        <h2>Saved entries</h2>
-        <?php if (empty($experience)): ?>
-          <p class="muted-copy">No work experience entries added yet.</p>
-        <?php else: ?>
-          <div class="table-wrap">
-            <table id="experience-table" class="data-table display" style="width:100%" data-page-length="10">
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Role</th>
-                  <th>Location</th>
-                  <th>Period</th>
-                  <th>Description</th>
-                  <th class="no-sort">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($experience as $item): ?>
-                  <tr>
-                    <td><?php echo htmlspecialchars($item['company']); ?></td>
-                    <td><?php echo htmlspecialchars($item['role_name'] ?: '-'); ?></td>
-                    <td><?php echo htmlspecialchars($item['location'] ?: '-'); ?></td>
-                    <td><?php echo htmlspecialchars($item['start_date'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></td>
-                    <td><?php echo nl2br(htmlspecialchars($item['description'] ?: '-')); ?></td>
-                    <td class="actions-cell">
-                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
-                      <a class="btn danger small" href="?delete=experience&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </section>
     </main>
   </div>
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesFooter(); ?>

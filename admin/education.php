@@ -82,7 +82,7 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
@@ -95,8 +95,62 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
       <?php if (!empty($notice)): ?><div class="notice"><?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
       <?php if (!empty($error)): ?><div class="error-box"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
+      <?php $education_form_panel_open = !empty($editingEntry) || !empty($error); ?>
+
+
       <section class="panel">
-        <h2><?php echo $editingEntry ? '✏️ Edit Education' : '📝 Add Education'; ?></h2>
+        <div class="admin-list-head">
+          <h2>Saved entries</h2>
+          <button type="button" class="btn primary admin-form-toggle" data-form-target="education-form-panel" data-label-show="Add Education" data-label-hide="Hide Form" aria-controls="education-form-panel">
+            <i class="fa-solid fa-plus"></i> Add Education
+          </button>
+        </div>
+        <?php if (empty($education)): ?>
+          <p class="muted-copy">No education entries added yet.</p>
+        <?php else: ?>
+          <div class="table-wrap">
+            <table id="education-table" class="data-table display" style="width:100%" data-page-length="10">
+              <thead>
+                <tr>
+                  <th>Institution</th>
+                  <th>Degree</th>
+                  <th>Field</th>
+                  <th>Period</th>
+                  <th>Academic details</th>
+                  <th class="no-sort">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($education as $item): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($item['institution']); ?></td>
+                    <td><?php echo htmlspecialchars($item['degree'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['field_name'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($item['start_year'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_year'] ?: 'Present'); ?></td>
+                    <td><?php echo nl2br(htmlspecialchars($item['education_details'] ?: $item['description'] ?: '-')); ?></td>
+                    <td class="actions-cell">
+                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>#education-form-panel"><i class="fa-solid fa-pen"></i> Edit</a>
+                      <a class="btn danger small" href="?delete=education&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </section>
+
+      <section class="panel admin-form-panel" id="education-form-panel"<?php echo $education_form_panel_open ? "" : " hidden"; ?>>
+        <div class="admin-list-head">
+          <h2><?php echo $editingEntry ? 'Edit Education' : 'New Education'; ?></h2>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <?php if (!empty($editingEntry)): ?>
+              <a href="education.php" class="btn small">Cancel</a>
+            <?php else: ?>
+              <button type="button" class="btn small admin-form-close" data-form-target="education-form-panel">Hide</button>
+            <?php endif; ?>
+          </div>
+        </div>
         <?php if ($editingEntry): ?><div style="background: rgba(15, 118, 110, 0.08); border: 1px solid rgba(15, 118, 110, 0.2); padding: 12px; margin-bottom: 16px; font-size: 0.9rem; color: var(--text);">Editing: <strong><?php echo htmlspecialchars($editingEntry['institution']); ?></strong> (ID: <?php echo (int)$editingEntry['id']; ?>)</div><?php endif; ?>
         <form method="post">
           <div class="grid-form">
@@ -139,42 +193,6 @@ $education = $pdo->query('SELECT * FROM education ORDER BY sort_order DESC, id D
         </form>
       </section>
 
-      <section class="panel">
-        <h2>Saved entries</h2>
-        <?php if (empty($education)): ?>
-          <p class="muted-copy">No education entries added yet.</p>
-        <?php else: ?>
-          <div class="table-wrap">
-            <table id="education-table" class="data-table display" style="width:100%" data-page-length="10">
-              <thead>
-                <tr>
-                  <th>Institution</th>
-                  <th>Degree</th>
-                  <th>Field</th>
-                  <th>Period</th>
-                  <th>Academic details</th>
-                  <th class="no-sort">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($education as $item): ?>
-                  <tr>
-                    <td><?php echo htmlspecialchars($item['institution']); ?></td>
-                    <td><?php echo htmlspecialchars($item['degree'] ?: '-'); ?></td>
-                    <td><?php echo htmlspecialchars($item['field_name'] ?: '-'); ?></td>
-                    <td><?php echo htmlspecialchars($item['start_year'] ?: '-'); ?> - <?php echo htmlspecialchars($item['end_year'] ?: 'Present'); ?></td>
-                    <td><?php echo nl2br(htmlspecialchars($item['education_details'] ?: $item['description'] ?: '-')); ?></td>
-                    <td class="actions-cell">
-                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>"><i class="fa-solid fa-pen"></i> Edit</a>
-                      <a class="btn danger small" href="?delete=education&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this entry?');"><i class="fa-solid fa-trash"></i> Delete</a>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </section>
     </main>
   </div>
   <?php adminDataTablesFooter(); ?>

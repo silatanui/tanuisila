@@ -65,6 +65,73 @@ function adminDataTablesFooter(): void {
         }
       });
     });
+
+    // Collapsible add/edit forms: table first, form revealed on demand
+    function syncAdminFormToggles() {
+      document.querySelectorAll('.admin-form-toggle').forEach(function (btn) {
+        var panel = document.getElementById(btn.getAttribute('data-form-target') || '');
+        if (!panel) return;
+        var open = !panel.hasAttribute('hidden');
+        var showLabel = btn.getAttribute('data-label-show') || 'Add';
+        var hideLabel = btn.getAttribute('data-label-hide') || 'Hide form';
+        var icon = open ? 'fa-xmark' : 'fa-plus';
+        btn.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + (open ? hideLabel : showLabel);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+
+    function setAdminFormOpen(panel, open) {
+      if (!panel) return;
+      if (open) {
+        panel.removeAttribute('hidden');
+        panel.classList.add('is-open');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (window.tinymce && tinymce.get('blog-content-editor')) {
+          setTimeout(function () {
+            try {
+              var ed = tinymce.get('blog-content-editor');
+              if (ed) { ed.fire('ResizeEditor'); }
+            } catch (e) {}
+          }, 80);
+        }
+      } else {
+        panel.setAttribute('hidden', '');
+        panel.classList.remove('is-open');
+      }
+      syncAdminFormToggles();
+    }
+
+    document.querySelectorAll('.admin-form-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var panel = document.getElementById(btn.getAttribute('data-form-target') || '');
+        if (!panel) return;
+        setAdminFormOpen(panel, panel.hasAttribute('hidden'));
+      });
+    });
+
+    document.querySelectorAll('.admin-form-close').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        var target = btn.getAttribute('data-form-target');
+        if (!target) return;
+        var panel = document.getElementById(target);
+        if (!panel) return;
+        // If this is a plain hide (not a navigation cancel), prevent default
+        if (btn.tagName === 'BUTTON') {
+          e.preventDefault();
+          setAdminFormOpen(panel, false);
+        }
+      });
+    });
+
+    // Open form when landing on #form-anchor / edit hash
+    if (window.location.hash) {
+      var hashPanel = document.querySelector(window.location.hash);
+      if (hashPanel && hashPanel.classList.contains('admin-form-panel')) {
+        setAdminFormOpen(hashPanel, true);
+      }
+    }
+
+    syncAdminFormToggles();
   })();
   </script>
     <?php

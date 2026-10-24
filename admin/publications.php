@@ -54,7 +54,7 @@ $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
@@ -66,44 +66,16 @@ $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC
       <?php if (!empty($notice)): ?><div class="notice"><?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
       <?php if (!empty($error)): ?><div class="error-box"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
-      <section class="panel">
-        <h2>Add publication</h2>
-        <form method="post">
-          <div class="grid-form">
-            <div class="field">
-              <label>Title</label>
-              <input name="title" required>
-            </div>
-            <div class="field">
-              <label>Venue</label>
-              <input name="venue">
-            </div>
-            <div class="field">
-              <label>Year</label>
-              <input name="publication_year">
-            </div>
-            <div class="field">
-              <label>URL</label>
-              <input name="url" type="url">
-            </div>
-            <div class="field">
-              <label>Sort order</label>
-              <input type="number" name="sort_order" value="0">
-            </div>
-            <div class="field full">
-              <label>Summary</label>
-              <textarea name="summary"></textarea>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn primary">Add publication</button>
-          </div>
-          <input type="hidden" name="action" value="save_publication">
-        </form>
-      </section>
+      <?php $publication_form_panel_open = !empty($error); ?>
+
 
       <section class="panel">
-        <h2>Saved entries</h2>
+        <div class="admin-list-head">
+          <h2>Saved entries</h2>
+          <button type="button" class="btn primary admin-form-toggle" data-form-target="publication-form-panel" data-label-show="Add Publication" data-label-hide="Hide Form" aria-controls="publication-form-panel">
+            <i class="fa-solid fa-plus"></i> Add Publication
+          </button>
+        </div>
         <?php if (empty($publications)): ?>
           <p class="muted-copy">No publications added yet.</p>
         <?php else: ?>
@@ -143,6 +115,48 @@ $publications = $pdo->query('SELECT * FROM publications ORDER BY sort_order DESC
           </div>
         <?php endif; ?>
       </section>
+
+      <section class="panel admin-form-panel" id="publication-form-panel"<?php echo $publication_form_panel_open ? "" : " hidden"; ?>>
+        <div class="admin-list-head">
+          <h2>New Publication</h2>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn small admin-form-close" data-form-target="publication-form-panel">Hide</button>
+          </div>
+        </div>
+        <form method="post">
+          <div class="grid-form">
+            <div class="field">
+              <label>Title</label>
+              <input name="title" required>
+            </div>
+            <div class="field">
+              <label>Venue</label>
+              <input name="venue">
+            </div>
+            <div class="field">
+              <label>Year</label>
+              <input name="publication_year">
+            </div>
+            <div class="field">
+              <label>URL</label>
+              <input name="url" type="url">
+            </div>
+            <div class="field">
+              <label>Sort order</label>
+              <input type="number" name="sort_order" value="0">
+            </div>
+            <div class="field full">
+              <label>Summary</label>
+              <textarea name="summary"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Add publication</button>
+          </div>
+          <input type="hidden" name="action" value="save_publication">
+        </form>
+      </section>
+
     </main>
   </div>
   <?php adminDataTablesFooter(); ?>

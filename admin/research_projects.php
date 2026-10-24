@@ -168,7 +168,7 @@ if ($editingProject) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=3">
   <?php require_once __DIR__ . '/datatables.php'; adminDataTablesHead(); ?>
 </head>
 <body>
@@ -180,37 +180,16 @@ if ($editingProject) {
       <?php if (!empty($notice)): ?><div class="notice"><?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
       <?php if (!empty($error)): ?><div class="error-box"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 
-      <section class="panel">
-        <h2><?php echo $editingProject ? 'Edit research project' : 'Add research project'; ?></h2>
-        <form method="post">
-          <div class="grid-form">
-            <div class="field"><label>Source ID</label><input type="number" name="source_id" min="1" required value="<?php echo (int) $formSourceId; ?>"></div>
-            <div class="field"><label>Sort order</label><input type="number" name="sort_order" value="<?php echo (int) $formSortOrder; ?>"></div>
-            <div class="field full"><label>Title</label><input name="title" required value="<?php echo htmlspecialchars($formTitle); ?>"></div>
-            <div class="field"><label>Category</label><input name="category" required value="<?php echo htmlspecialchars($formCategory); ?>"></div>
-            <div class="field"><label>Year Label</label><input name="year_label" required value="<?php echo htmlspecialchars($formYearLabel); ?>"></div>
-            <div class="field full"><label>Short Description</label><textarea name="short_description" required><?php echo htmlspecialchars($formShortDescription); ?></textarea></div>
-            <div class="field full"><label>Long Description</label><textarea name="long_description" required><?php echo htmlspecialchars($formLongDescription); ?></textarea></div>
-            <div class="field full"><label>Tech Stack (comma separated)</label><input name="tech_stack" required value="<?php echo htmlspecialchars($formTechStack); ?>"></div>
-            <div class="field full"><label>Highlights (comma separated)</label><input name="highlights" value="<?php echo htmlspecialchars($formHighlights); ?>"></div>
-            <div class="field"><label>Demo URL</label><input type="url" name="demo_url" value="<?php echo htmlspecialchars($formDemoUrl); ?>"></div>
-            <div class="field"><label>GitHub URL</label><input type="url" name="github_url" value="<?php echo htmlspecialchars($formGithubUrl); ?>"></div>
-            <div class="field full" style="display:flex; align-items:center; gap:10px;">
-              <input type="checkbox" id="is_active" name="is_active" <?php echo $formIsActive ? 'checked' : ''; ?>>
-              <label for="is_active" style="margin:0;">Visible on website</label>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn primary"><?php echo $editingProject ? 'Update project' : 'Create project'; ?></button>
-            <?php if ($editingProject): ?><a href="research_projects.php" class="btn">Cancel</a><?php endif; ?>
-          </div>
-          <input type="hidden" name="action" value="save_research_project">
-          <?php if ($editingProject): ?><input type="hidden" name="record_id" value="<?php echo (int) $editingProject['id']; ?>"><?php endif; ?>
-        </form>
-      </section>
+      <?php $research_form_panel_open = !empty($editingProject) || !empty($error); ?>
+
 
       <section class="panel">
-        <h2>Saved research projects</h2>
+        <div class="admin-list-head">
+          <h2>Saved research projects</h2>
+          <button type="button" class="btn primary admin-form-toggle" data-form-target="research-form-panel" data-label-show="Add Research Project" data-label-hide="Hide Form" aria-controls="research-form-panel">
+            <i class="fa-solid fa-plus"></i> Add Research Project
+          </button>
+        </div>
         <?php if (empty($records)): ?>
           <p class="muted-copy">No research projects saved yet.</p>
         <?php else: ?>
@@ -250,7 +229,7 @@ if ($editingProject) {
                     <td class="actions-cell">
                       <?php if (!empty($item['demo_url']) && $item['demo_url'] !== '#'): ?><a class="btn small" href="<?php echo htmlspecialchars($item['demo_url']); ?>" target="_blank" rel="noopener">Demo</a><?php endif; ?>
                       <?php if (!empty($item['github_url']) && $item['github_url'] !== '#'): ?><a class="btn small" href="<?php echo htmlspecialchars($item['github_url']); ?>" target="_blank" rel="noopener">GitHub</a><?php endif; ?>
-                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>">Edit</a>
+                      <a class="btn small" href="?edit=<?php echo (int) $item['id']; ?>#research-form-panel">Edit</a>
                       <a class="btn danger small" href="?delete=research_projects&id=<?php echo (int) $item['id']; ?>" onclick="return confirm('Delete this research project?');">Delete</a>
                     </td>
                   </tr>
@@ -260,6 +239,45 @@ if ($editingProject) {
           </div>
         <?php endif; ?>
       </section>
+
+      <section class="panel admin-form-panel" id="research-form-panel"<?php echo $research_form_panel_open ? "" : " hidden"; ?>>
+        <div class="admin-list-head">
+          <h2><?php echo $editingProject ? 'Edit Research Project' : 'New Research Project'; ?></h2>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <?php if (!empty($editingProject)): ?>
+              <a href="research_projects.php" class="btn small">Cancel</a>
+            <?php else: ?>
+              <button type="button" class="btn small admin-form-close" data-form-target="research-form-panel">Hide</button>
+            <?php endif; ?>
+          </div>
+        </div>
+        <form method="post">
+          <div class="grid-form">
+            <div class="field"><label>Source ID</label><input type="number" name="source_id" min="1" required value="<?php echo (int) $formSourceId; ?>"></div>
+            <div class="field"><label>Sort order</label><input type="number" name="sort_order" value="<?php echo (int) $formSortOrder; ?>"></div>
+            <div class="field full"><label>Title</label><input name="title" required value="<?php echo htmlspecialchars($formTitle); ?>"></div>
+            <div class="field"><label>Category</label><input name="category" required value="<?php echo htmlspecialchars($formCategory); ?>"></div>
+            <div class="field"><label>Year Label</label><input name="year_label" required value="<?php echo htmlspecialchars($formYearLabel); ?>"></div>
+            <div class="field full"><label>Short Description</label><textarea name="short_description" required><?php echo htmlspecialchars($formShortDescription); ?></textarea></div>
+            <div class="field full"><label>Long Description</label><textarea name="long_description" required><?php echo htmlspecialchars($formLongDescription); ?></textarea></div>
+            <div class="field full"><label>Tech Stack (comma separated)</label><input name="tech_stack" required value="<?php echo htmlspecialchars($formTechStack); ?>"></div>
+            <div class="field full"><label>Highlights (comma separated)</label><input name="highlights" value="<?php echo htmlspecialchars($formHighlights); ?>"></div>
+            <div class="field"><label>Demo URL</label><input type="url" name="demo_url" value="<?php echo htmlspecialchars($formDemoUrl); ?>"></div>
+            <div class="field"><label>GitHub URL</label><input type="url" name="github_url" value="<?php echo htmlspecialchars($formGithubUrl); ?>"></div>
+            <div class="field full" style="display:flex; align-items:center; gap:10px;">
+              <input type="checkbox" id="is_active" name="is_active" <?php echo $formIsActive ? 'checked' : ''; ?>>
+              <label for="is_active" style="margin:0;">Visible on website</label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary"><?php echo $editingProject ? 'Update project' : 'Create project'; ?></button>
+            <?php if ($editingProject): ?><a href="research_projects.php" class="btn">Cancel</a><?php endif; ?>
+          </div>
+          <input type="hidden" name="action" value="save_research_project">
+          <?php if ($editingProject): ?><input type="hidden" name="record_id" value="<?php echo (int) $editingProject['id']; ?>"><?php endif; ?>
+        </form>
+      </section>
+
     </main>
   </div>
   <?php adminDataTablesFooter(); ?>
