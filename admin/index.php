@@ -55,6 +55,8 @@ $uniqueToday = analyticsCountUniqueOn($pdo, $today);
 $uniqueYesterday = analyticsCountUniqueOn($pdo, $yesterday);
 $unique7 = analyticsCountUniqueSince($pdo, $weekAgo);
 $unique30 = analyticsCountUniqueSince($pdo, $monthAgo);
+$networks7 = analyticsCountUniqueNetworksSince($pdo, $weekAgo);
+$networks30 = analyticsCountUniqueNetworksSince($pdo, $monthAgo);
 
 $visitorSeries = analyticsDailyUniqueSeries($pdo, 30);
 $blogReaderSeries = analyticsDailyBlogReadersSeries($pdo, 30);
@@ -116,7 +118,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=5">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=6">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -155,12 +157,12 @@ $chartPayload = [
         <article class="dash-kpi">
           <span class="dash-kpi__label">Unique · last 7 days</span>
           <strong class="dash-kpi__value"><?php echo number_format($unique7); ?></strong>
-          <span class="dash-kpi__meta">One count per person / day</span>
+          <span class="dash-kpi__meta"><?php echo number_format($networks7); ?> networks (IPs)</span>
         </article>
         <article class="dash-kpi">
           <span class="dash-kpi__label">Unique · last 30 days</span>
           <strong class="dash-kpi__value"><?php echo number_format($unique30); ?></strong>
-          <span class="dash-kpi__meta">Site-wide (not pageviews)</span>
+          <span class="dash-kpi__meta"><?php echo number_format($networks30); ?> networks · IP + browser</span>
         </article>
         <article class="dash-kpi">
           <span class="dash-kpi__label">Blog post views</span>
@@ -184,8 +186,9 @@ $chartPayload = [
           <div>
             <h2 style="margin:0;">Visitors by country</h2>
             <p class="dash-chart-card__hint">
-              Darker = more unique visitors (last 30 days). Location is approximate from IP
-              (e.g. Nairobi, Kenya or Budapest, Hungary).
+              Darker = more unique visitors (last 30 days). Counted by IP + browser family:
+              incognito in the same browser does not double-count; Chrome vs Firefox on shared Wi‑Fi counts as two.
+              Location is approximate from IP.
             </p>
           </div>
           <span class="dash-map-total"><?php echo number_format((int) $countryBreakdown['total']); ?> located</span>
@@ -396,17 +399,18 @@ $chartPayload = [
         selector: '#world-visitors-map',
         map: 'world',
         backgroundColor: 'transparent',
-        zoomOnScroll: false,
+        zoomOnScroll: true,
+        zoomButtons: true,
         regionsSelectable: false,
         regionStyle: {
           initial: {
             fill: '#e2e8f0',
             stroke: '#ffffff',
-            strokeWidth: 0.4,
+            strokeWidth: 0.35,
             fillOpacity: 1
           },
           hover: {
-            fillOpacity: 0.9,
+            fillOpacity: 0.92,
             cursor: 'pointer'
           }
         },
@@ -425,6 +429,14 @@ $chartPayload = [
             (tooltip.text() || code) + ' — ' + label,
             true
           );
+        }
+      });
+
+      // Keep SVG sharp when the panel is wide
+      window.addEventListener('resize', function () {
+        var mapEl = document.querySelector('#world-visitors-map .jvm-container');
+        if (mapEl && typeof mapEl.dispatchEvent === 'function') {
+          window.dispatchEvent(new Event('resize'));
         }
       });
     }

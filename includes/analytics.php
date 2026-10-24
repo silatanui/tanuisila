@@ -1,7 +1,11 @@
 <?php
 /**
  * Analytics — unique visitor tracking (site + blog posts).
- * Site uniqueness: one count per visitor device cookie per calendar day.
+ *
+ * Site uniqueness (hybrid): IP + browser family per calendar day.
+ * - Same person, Chrome normal + Chrome incognito → 1
+ * - Two people on campus Wi‑Fi using Chrome + Firefox → 2
+ * - Two people both on Chrome on the same Wi‑Fi → still 1 (unavoidable without login)
  */
 
 function analyticsIsBot(?string $userAgent = null): bool
@@ -32,6 +36,103 @@ function analyticsEnsureVisitorId(): string
     }
 
     return preg_replace('/[^a-zA-Z0-9]/', '', (string) $_COOKIE['sila_vid']);
+}
+
+/**
+ * Best-effort public client IP (supports common proxies / Cloudflare).
+ */
+function analyticsClientIp(): string
+{
+    $candidates = [
+        $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',
+        $_SERVER['HTTP_TRUE_CLIENT_IP'] ?? '',
+        $_SERVER['HTTP_X_REAL_IP'] ?? '',
+        $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
+        $_SERVER['REMOTE_ADDR'] ?? '',
+    ];
+
+    foreach ($candidates as $raw) {
+        if ($raw === '' || $raw === null) {
+            continue;
+        }
+        // X-Forwarded-For may be a list: client, proxy1, proxy2
+        foreach (explode(',', (string) $raw) as $part) {
+            $ip = trim($part);
+            if ($ip === '') {
+                continue;
+            }
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Normalize client IP for identity hashing.
+ */
+function analyticsNormalizeIp(string $ip): string
+{
+    $ip = strtolower(trim($ip));
+    if ($ip === '') {
+        return 'unknown';
+    }
+    if ($ip === '::1' || $ip === '0:0:0:0:0:0:0:1') {
+        return '127.0.0.1';
+    }
+    return $ip;
+}
+
+/**
+ * Coarse browser family from User-Agent (not a full fingerprint).
+ */
+function analyticsBrowserFamily(?string $userAgent = null): string
+{
+    $ua = strtolower((string) ($userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')));
+    if ($ua === '') {
+        return 'other';
+    }
+
+    // Order matters (Edge/Opera include "chrome" in UA)
+    if (strpos($ua, 'edg/') !== false || strpos($ua, 'edgios/') !== false) {
+        return 'edge';
+    }
+    if (strpos($ua, 'opr/') !== false || strpos($ua, 'opera') !== false) {
+        return 'opera';
+    }
+    if (strpos($ua, 'firefox/') !== false || strpos($ua, 'fxios/') !== false) {
+        return 'firefox';
+    }
+    if (strpos($ua, 'crios/') !== false || strpos($ua, 'chrome/') !== false || strpos($ua, 'chromium/') !== false) {
+        return 'chrome';
+    }
+    if (strpos($ua, 'safari/') !== false) {
+        return 'safari';
+    }
+    if (strpos($ua, 'msie') !== false || strpos($ua, 'trident/') !== false) {
+        return 'ie';
+    }
+
+    return 'other';
+}
+
+/**
+ * Stable daily identity: network IP + browser family.
+ * Avoids cookie inflation (incognito) while separating browsers on shared Wi‑Fi.
+ */
+function analyticsVisitorHash(string $ip, ?string $userAgent = null): string
+{
+    $ip = analyticsNormalizeIp($ip);
+    $family = analyticsBrowserFamily($userAgent);
+    return hash('sha256', 'site-ip-browser|v2|' . $ip . '|' . $family);
+}
+
+/** @deprecated Use analyticsVisitorHash() */
+function analyticsVisitorHashFromIp(string $ip): string
+{
+    return analyticsVisitorHash($ip, '');
 }
 
 /**
@@ -127,46 +228,50 @@ function trackSiteUniqueVisit(PDO $pdo): void
         return;
     }
 
-    // Fast path: already counted today on this device
-    $dayKey = 'sila_site_' . date('Ymd');
+    $ip = analyticsClientIp();
+    if ($ip === '') {
+        return;
+    }
+
+    // Hybrid identity: IP + browser family (incognito same browser = same person)
+    $visitorHash = analyticsVisitorHash($ip, $userAgent);
+    $visitDate = date('Y-m-d');
+
+    // Fast path: this browser already confirmed today's hybrid row exists
+    $dayKey = 'sila_hb_' . date('Ymd') . '_' . substr($visitorHash, 0, 12);
     if (!empty($_COOKIE[$dayKey])) {
         return;
     }
 
-    $visitorId = analyticsEnsureVisitorId();
-    if ($visitorId === '') {
-        return;
-    }
-
-    // Cookie alone identifies the device for unique daily counts
-    $visitorHash = hash('sha256', 'site|' . $visitorId);
-    $ip = $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['HTTP_X_FORWARDED_FOR']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? '';
-    if (strpos($ip, ',') !== false) {
-        $ip = trim(explode(',', $ip)[0]);
-    }
     $path = substr((string) ($_SERVER['REQUEST_URI'] ?? '/'), 0, 255);
-    $visitDate = date('Y-m-d');
-    $geo = analyticsLookupGeo($ip);
 
     try {
-        $stmt = $pdo->prepare("
-            INSERT IGNORE INTO site_daily_visitors
-                (visit_date, visitor_hash, ip_address, user_agent, landing_path, country_code, country_name, city, first_seen)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        $existsStmt = $pdo->prepare("
+            SELECT id FROM site_daily_visitors
+            WHERE visit_date = ? AND visitor_hash = ?
+            LIMIT 1
         ");
-        $stmt->execute([
-            $visitDate,
-            $visitorHash,
-            substr($ip, 0, 45),
-            substr($userAgent, 0, 255),
-            $path,
-            $geo['country_code'],
-            $geo['country_name'],
-            $geo['city'],
-        ]);
+        $existsStmt->execute([$visitDate, $visitorHash]);
+        $already = $existsStmt->fetchColumn();
+
+        if (!$already) {
+            $geo = analyticsLookupGeo($ip);
+            $stmt = $pdo->prepare("
+                INSERT IGNORE INTO site_daily_visitors
+                    (visit_date, visitor_hash, ip_address, user_agent, landing_path, country_code, country_name, city, first_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $visitDate,
+                $visitorHash,
+                substr($ip, 0, 45),
+                substr($userAgent, 0, 255),
+                $path,
+                $geo['country_code'],
+                $geo['country_name'],
+                $geo['city'],
+            ]);
+        }
 
         if (!headers_sent()) {
             $expires = strtotime('tomorrow') - 1;
@@ -329,6 +434,24 @@ function analyticsCountUniqueOn(PDO $pdo, string $date): int
             SELECT COUNT(*) FROM site_daily_visitors WHERE visit_date = ?
         ");
         $stmt->execute([$date]);
+        return (int) $stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+/** Distinct networks (IPs) since date — useful alongside hybrid visitor counts. */
+function analyticsCountUniqueNetworksSince(PDO $pdo, string $sinceDate): int
+{
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(DISTINCT ip_address)
+            FROM site_daily_visitors
+            WHERE visit_date >= ?
+              AND ip_address IS NOT NULL
+              AND ip_address <> ''
+        ");
+        $stmt->execute([$sinceDate]);
         return (int) $stmt->fetchColumn();
     } catch (Throwable $e) {
         return 0;
