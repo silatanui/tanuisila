@@ -43,7 +43,11 @@ $categories = array_slice(array_values($categories), 0, 12);
 $catVisibleLimit = 5;
 
 $latest = $blogPosts[0] ?? null;
-$topReads = array_slice($blogPosts, 1, 3);
+$topReadsSource = $blogPosts;
+usort($topReadsSource, static function (array $a, array $b): int {
+  return ((int) ($b['views'] ?? 0)) <=> ((int) ($a['views'] ?? 0));
+});
+$topReads = array_slice($topReadsSource, 0, 3);
 $gridPosts = $blogPosts; // full list; JS filters/paginates
 
 function bl_post_href(array $post): string {
@@ -63,6 +67,14 @@ function bl_post_tags(array $post): array {
     return [];
   }
   return array_values(array_filter(array_map('trim', explode(',', $post['tags']))));
+}
+
+function bl_post_views(array $post): int {
+  return max(0, (int) ($post['views'] ?? 0));
+}
+
+function bl_views_label(int $views): string {
+  return number_format($views) . ($views === 1 ? ' view' : ' views');
 }
 ?>
 
@@ -114,6 +126,11 @@ function bl_post_tags(array $post): array {
                     <span class="bl-hub-meta__sep" aria-hidden="true">|</span>
                     <span><?php echo htmlspecialchars($latest['author_name'], ENT_QUOTES, 'UTF-8'); ?></span>
                   <?php endif; ?>
+                  <span class="bl-hub-meta__sep" aria-hidden="true">|</span>
+                  <span class="bl-hub-views" title="Total post views">
+                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    <?php echo htmlspecialchars(bl_views_label(bl_post_views($latest)), ENT_QUOTES, 'UTF-8'); ?>
+                  </span>
                 </div>
                 <?php if (!empty($latest['excerpt'])): ?>
                   <p class="bl-hub-feature__excerpt"><?php echo htmlspecialchars($latest['excerpt'], ENT_QUOTES, 'UTF-8'); ?></p>
@@ -157,10 +174,11 @@ function bl_post_tags(array $post): array {
                       <?php if ($trDate !== ''): ?>
                         <time datetime="<?php echo date('c', strtotime($tr['published_at'])); ?>"><?php echo $trDate; ?></time>
                       <?php endif; ?>
-                      <?php if (!empty($tr['author_name'])): ?>
-                        <span class="bl-hub-meta__sep" aria-hidden="true">|</span>
-                        <span><?php echo htmlspecialchars($tr['author_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                      <?php endif; ?>
+                      <span class="bl-hub-meta__sep" aria-hidden="true">|</span>
+                      <span class="bl-hub-views" title="Total post views">
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                        <?php echo htmlspecialchars(bl_views_label(bl_post_views($tr)), ENT_QUOTES, 'UTF-8'); ?>
+                      </span>
                     </div>
                   </div>
                 </article>
@@ -255,9 +273,15 @@ function bl_post_tags(array $post): array {
                 <?php endif; ?>
               </a>
               <div class="bl-hub-card__body">
-                <?php if ($date !== ''): ?>
-                  <time class="bl-hub-card__date" datetime="<?php echo date('c', strtotime($post['published_at'])); ?>"><?php echo $date; ?></time>
-                <?php endif; ?>
+                <div class="bl-hub-card__meta">
+                  <?php if ($date !== ''): ?>
+                    <time class="bl-hub-card__date" datetime="<?php echo date('c', strtotime($post['published_at'])); ?>"><?php echo $date; ?></time>
+                  <?php endif; ?>
+                  <span class="bl-hub-views" title="Total post views">
+                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    <?php echo htmlspecialchars(bl_views_label(bl_post_views($post)), ENT_QUOTES, 'UTF-8'); ?>
+                  </span>
+                </div>
                 <h3 class="bl-hub-card__title">
                   <a href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8'); ?>

@@ -283,13 +283,14 @@ $posts = $pdo->query('
           </div>
         <?php else: ?>
           <div class="table-wrap">
-            <table id="blog-posts-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[3,"desc"]]'>
+            <table id="blog-posts-table" class="data-table display" style="width:100%" data-page-length="10" data-order='[[4,"desc"]]'>
               <thead>
                 <tr>
                   <th>Title</th>
                   <th>Status</th>
                   <th>Category</th>
                   <th>Published</th>
+                  <th>Views</th>
                   <th>Comments</th>
                   <th class="no-sort">Actions</th>
                 </tr>
@@ -298,6 +299,7 @@ $posts = $pdo->query('
                 <?php foreach ($posts as $post):
                   $editUrl = 'blog.php?edit=' . (int)$post['id'] . '&v=' . time() . '#post-editor-panel';
                   $statusClass = htmlspecialchars($post['status'] ?? 'draft');
+                  $viewCount = (int) ($post['views'] ?? 0);
                 ?>
                   <tr>
                     <td>
@@ -319,6 +321,12 @@ $posts = $pdo->query('
                     <td><?php echo htmlspecialchars($post['category'] ?? 'General'); ?></td>
                     <td data-order="<?php echo !empty($post['published_at']) ? strtotime($post['published_at']) : 0; ?>">
                       <?php echo !empty($post['published_at']) ? date('M d, Y', strtotime($post['published_at'])) : '—'; ?>
+                    </td>
+                    <td data-order="<?php echo $viewCount; ?>">
+                      <span style="font-weight: 800; color: var(--text); white-space: nowrap;">
+                        <i class="fa-solid fa-eye" style="color: var(--primary);" aria-hidden="true"></i>
+                        <?php echo number_format($viewCount); ?>
+                      </span>
                     </td>
                     <td data-order="<?php echo (int)($post['total_comments'] ?? 0); ?>">
                       <a href="comments.php?post_id=<?php echo (int)$post['id']; ?>" style="text-decoration: none; color: var(--text); font-weight: 600;">
@@ -351,6 +359,9 @@ $posts = $pdo->query('
             <?php if ($editingPost): ?>
               <span style="font-size: 0.85rem; color: var(--muted);">
                 Editing: <strong><?php echo htmlspecialchars($editingPost['title']); ?></strong>
+                ·
+                <i class="fa-solid fa-eye" style="color: var(--primary);" aria-hidden="true"></i>
+                <?php echo number_format((int) ($editingPost['views'] ?? 0)); ?> views
               </span>
               <a href="blog.php" class="btn small">Cancel</a>
             <?php else: ?>

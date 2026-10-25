@@ -163,6 +163,14 @@ $authorPhoto = file_exists(__DIR__ . '/profile.jpg') ? appUrl('public/profile.jp
             <?php if ($publishedLabel !== ''): ?>
               <time datetime="<?php echo date('c', strtotime($post['published_at'])); ?>"><?php echo $publishedLabel; ?></time>
             <?php endif; ?>
+            <?php
+              $postViews = max(0, (int) ($post['views'] ?? 0));
+              $postViewsLabel = number_format($postViews) . ($postViews === 1 ? ' view' : ' views');
+            ?>
+            <span class="bp-banner__views" title="Total post views">
+              <i class="fa-solid fa-eye" aria-hidden="true"></i>
+              <?php echo htmlspecialchars($postViewsLabel, ENT_QUOTES, 'UTF-8'); ?>
+            </span>
           </div>
         </div>
       </div>
