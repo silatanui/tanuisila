@@ -48,7 +48,8 @@ function renderSidebar($active = '') {
     ];
 
     $html = '
-    <aside class="sidebar" aria-label="Admin navigation">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+    <aside class="sidebar" id="admin-sidebar" aria-label="Admin navigation">
       <div class="sidebar-inner">
         <div class="brand-box">
           <a class="brand-link" href="index.php" title="Admin overview">
@@ -60,6 +61,9 @@ function renderSidebar($active = '') {
               <span class="brand-chip">Admin cockpit</span>
             </span>
           </a>
+          <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
         </div>
 
         <nav class="nav">';
@@ -106,7 +110,41 @@ function renderSidebar($active = '') {
           </a>
         </div>
       </div>
-    </aside>';
+    </aside>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var sidebar = document.getElementById("admin-sidebar");
+      var backdrop = document.getElementById("sidebar-backdrop");
+      var openBtn = document.getElementById("sidebar-open");
+      var closeBtn = document.getElementById("sidebar-close");
+      if (!sidebar) return;
+
+      function setOpen(open) {
+        document.body.classList.toggle("sidebar-open", open);
+        if (backdrop) {
+          if (open) backdrop.removeAttribute("hidden");
+          else backdrop.setAttribute("hidden", "");
+        }
+        if (openBtn) openBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        if (window.matchMedia("(max-width: 980px)").matches) {
+          sidebar.setAttribute("aria-hidden", open ? "false" : "true");
+        } else {
+          sidebar.removeAttribute("aria-hidden");
+        }
+      }
+
+      if (openBtn) openBtn.addEventListener("click", function () { setOpen(true); });
+      if (closeBtn) closeBtn.addEventListener("click", function () { setOpen(false); });
+      if (backdrop) backdrop.addEventListener("click", function () { setOpen(false); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") setOpen(false);
+      });
+      window.addEventListener("resize", function () {
+        if (window.innerWidth > 980) setOpen(false);
+      });
+      setOpen(false);
+    });
+    </script>';
 
     return $html;
 }

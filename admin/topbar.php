@@ -7,25 +7,33 @@ function renderTopbar($pageTitle = 'Dashboard') {
     try {
         $unreadCount = (int)$pdo->query('SELECT COUNT(*) FROM `messages` WHERE `is_read` = 0')->fetchColumn();
     } catch (Throwable $e) {}
-    
+
     $badgeHtml = '';
     if ($unreadCount > 0) {
-        $badgeHtml = '<span style="position:absolute; top:-4px; right:-6px; background:#ef4444; color:#fff; border-radius:999px; width:16px; height:16px; font-size:0.62rem; font-weight:800; display:flex; align-items:center; justify-content:center;">' . $unreadCount . '</span>';
+        $badgeHtml = '<span class="topbar-badge" aria-label="' . $unreadCount . ' unread">' . $unreadCount . '</span>';
     }
 
     return '
     <header class="topbar">
-        <h1>' . htmlspecialchars($pageTitle) . '</h1>
-        <div class="top-actions" style="display:flex; align-items:center; gap:12px;">
-          <a href="messages.php" class="btn" style="position:relative; text-decoration:none; padding: 9px 14px; background: #ffffff;">
-            <i class="fa-solid fa-envelope" style="color: var(--primary);"></i> Messages
+        <div class="topbar-lead">
+          <button type="button" class="sidebar-open" id="sidebar-open" aria-label="Open menu" aria-controls="admin-sidebar" aria-expanded="false">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          </button>
+          <h1>' . htmlspecialchars($pageTitle) . '</h1>
+        </div>
+        <div class="top-actions">
+          <a href="messages.php" class="btn top-action top-action--msg">
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <span class="top-action__label">Messages</span>
             ' . $badgeHtml . '
           </a>
-          <a class="btn" href="../index.php" target="_blank" style="background: #ffffff;">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> View Live Site
+          <a class="btn top-action top-action--site" href="../index.php" target="_blank" rel="noopener">
+            <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            <span class="top-action__label">Live site</span>
           </a>
-          <a class="btn danger" href="logout.php">
-            <i class="fa-solid fa-right-from-bracket"></i> Logout
+          <a class="btn danger top-action top-action--logout" href="logout.php">
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span class="top-action__label">Logout</span>
           </a>
         </div>
     </header>';
