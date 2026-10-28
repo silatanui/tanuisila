@@ -136,12 +136,28 @@ function analyticsVisitorHashFromIp(string $ip): string
 }
 
 /**
- * Resolve approximate city/country from IP (server-side).
- * @return array{country_code:?string,country_name:?string,city:?string}
+ * Resolve approximate location from IP (server-side).
+ * City / region / coordinates are approximate ISP locations, not GPS.
+ *
+ * @return array{
+ *   country_code:?string,
+ *   country_name:?string,
+ *   region:?string,
+ *   city:?string,
+ *   latitude:?float,
+ *   longitude:?float
+ * }
  */
 function analyticsLookupGeo(string $ip): array
 {
-    $empty = ['country_code' => null, 'country_name' => null, 'city' => null];
+    $empty = [
+        'country_code' => null,
+        'country_name' => null,
+        'region' => null,
+        'city' => null,
+        'latitude' => null,
+        'longitude' => null,
+    ];
     $ip = trim($ip);
     if (
         $ip === '' || $ip === '::1' || $ip === '127.0.0.1'
@@ -150,21 +166,14 @@ function analyticsLookupGeo(string $ip): array
         return $empty;
     }
 
-    // Prefer Cloudflare / proxy country header when present (no external call)
-    $cf = strtoupper(trim((string) ($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '')));
-    if ($cf !== '' && $cf !== 'XX' && preg_match('/^[A-Z]{2}$/', $cf)) {
-        return [
-            'country_code' => $cf,
-            'country_name' => null,
-            'city' => null,
-        ];
-    }
-
     if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
         return $empty;
     }
 
-    $url = 'http://ip-api.com/json/' . rawurlencode($ip) . '?fields=status,country,countryCode,city';
+    // Prefer a full IP lookup so city / region / lat-lon are available for map drill-down.
+    // Fall back to Cloudflare country-only when the lookup fails.
+    $url = 'http://ip-api.com/json/' . rawurlencode($ip)
+        . '?fields=status,country,countryCode,regionName,city,lat,lon';
     $json = null;
 
     if (function_exists('curl_init')) {
@@ -187,25 +196,115 @@ function analyticsLookupGeo(string $ip): array
         $json = @file_get_contents($url, false, $ctx);
     }
 
-    if (!is_string($json) || $json === '') {
-        return $empty;
+    if (is_string($json) && $json !== '') {
+        $data = json_decode($json, true);
+        if (is_array($data) && ($data['status'] ?? '') === 'success') {
+            $code = strtoupper(trim((string) ($data['countryCode'] ?? '')));
+            if ($code !== '' && preg_match('/^[A-Z]{2}$/', $code)) {
+                $lat = isset($data['lat']) && is_numeric($data['lat']) ? (float) $data['lat'] : null;
+                $lon = isset($data['lon']) && is_numeric($data['lon']) ? (float) $data['lon'] : null;
+                if ($lat !== null && ($lat < -90 || $lat > 90)) {
+                    $lat = null;
+                }
+                if ($lon !== null && ($lon < -180 || $lon > 180)) {
+                    $lon = null;
+                }
+
+                return [
+                    'country_code' => $code,
+                    'country_name' => substr(trim((string) ($data['country'] ?? '')), 0, 100) ?: null,
+                    'region' => substr(trim((string) ($data['regionName'] ?? '')), 0, 120) ?: null,
+                    'city' => substr(trim((string) ($data['city'] ?? '')), 0, 120) ?: null,
+                    'latitude' => $lat,
+                    'longitude' => $lon,
+                ];
+            }
+        }
     }
 
-    $data = json_decode($json, true);
-    if (!is_array($data) || ($data['status'] ?? '') !== 'success') {
-        return $empty;
+    $cf = strtoupper(trim((string) ($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '')));
+    if ($cf !== '' && $cf !== 'XX' && preg_match('/^[A-Z]{2}$/', $cf)) {
+        return [
+            'country_code' => $cf,
+            'country_name' => null,
+            'region' => null,
+            'city' => null,
+            'latitude' => null,
+            'longitude' => null,
+        ];
     }
 
-    $code = strtoupper(trim((string) ($data['countryCode'] ?? '')));
-    if ($code === '' || !preg_match('/^[A-Z]{2}$/', $code)) {
-        return $empty;
-    }
+    return $empty;
+}
 
-    return [
-        'country_code' => $code,
-        'country_name' => substr(trim((string) ($data['country'] ?? '')), 0, 100) ?: null,
-        'city' => substr(trim((string) ($data['city'] ?? '')), 0, 120) ?: null,
+/**
+ * Fallback city centroids when older rows have a city name but no coordinates.
+ * Key format: CITY|CC (uppercase).
+ *
+ * @return array{0:float,1:float}|null lat, lon
+ */
+function analyticsCityFallbackCoords(string $city, string $countryCode): ?array
+{
+    static $coords = [
+        'NAIROBI|KE' => [-1.2921, 36.8219],
+        'MOMBASA|KE' => [-4.0435, 39.6682],
+        'KISUMU|KE' => [-0.0917, 34.7680],
+        'NAKURU|KE' => [-0.3031, 36.0800],
+        'ELDORET|KE' => [0.5143, 35.2698],
+        'THIKA|KE' => [-1.0333, 37.0693],
+        'NEW YORK|US' => [40.7128, -74.0060],
+        'LOS ANGELES|US' => [34.0522, -118.2437],
+        'CHICAGO|US' => [41.8781, -87.6298],
+        'HOUSTON|US' => [29.7604, -95.3698],
+        'PHOENIX|US' => [33.4484, -112.0740],
+        'PHILADELPHIA|US' => [39.9526, -75.1652],
+        'SAN ANTONIO|US' => [29.4241, -98.4936],
+        'SAN DIEGO|US' => [32.7157, -117.1611],
+        'DALLAS|US' => [32.7767, -96.7970],
+        'SAN JOSE|US' => [37.3382, -121.8863],
+        'AUSTIN|US' => [30.2672, -97.7431],
+        'JACKSONVILLE|US' => [30.3322, -81.6557],
+        'SAN FRANCISCO|US' => [37.7749, -122.4194],
+        'SEATTLE|US' => [47.6062, -122.3321],
+        'DENVER|US' => [39.7392, -104.9903],
+        'WASHINGTON|US' => [38.9072, -77.0369],
+        'BOSTON|US' => [42.3601, -71.0589],
+        'ATLANTA|US' => [33.7490, -84.3880],
+        'MIAMI|US' => [25.7617, -80.1918],
+        'LONDON|GB' => [51.5074, -0.1278],
+        'MANCHESTER|GB' => [53.4808, -2.2426],
+        'BIRMINGHAM|GB' => [52.4862, -1.8904],
+        'BUDAPEST|HU' => [47.4979, 19.0402],
+        'BERLIN|DE' => [52.5200, 13.4050],
+        'MUNICH|DE' => [48.1351, 11.5820],
+        'PARIS|FR' => [48.8566, 2.3522],
+        'AMSTERDAM|NL' => [52.3676, 4.9041],
+        'TORONTO|CA' => [43.6532, -79.3832],
+        'VANCOUVER|CA' => [49.2827, -123.1207],
+        'SAO PAULO|BR' => [-23.5505, -46.6333],
+        'RIO DE JANEIRO|BR' => [-22.9068, -43.1729],
+        'MUMBAI|IN' => [19.0760, 72.8777],
+        'BENGALURU|IN' => [12.9716, 77.5946],
+        'BANGALORE|IN' => [12.9716, 77.5946],
+        'DELHI|IN' => [28.7041, 77.1025],
+        'BEIJING|CN' => [39.9042, 116.4074],
+        'SHANGHAI|CN' => [31.2304, 121.4737],
+        'HONG KONG|HK' => [22.3193, 114.1694],
+        'SINGAPORE|SG' => [1.3521, 103.8198],
+        'SYDNEY|AU' => [-33.8688, 151.2093],
+        'MELBOURNE|AU' => [-37.8136, 144.9631],
+        'TOKYO|JP' => [35.6762, 139.6503],
+        'SEOUL|KR' => [37.5665, 126.9780],
+        'LAGOS|NG' => [6.5244, 3.3792],
+        'ACCRA|GH' => [5.6037, -0.1870],
+        'CAIRO|EG' => [30.0444, 31.2357],
+        'JOHANNESBURG|ZA' => [-26.2041, 28.0473],
+        'CAPE TOWN|ZA' => [-33.9249, 18.4241],
+        'DUBAI|AE' => [25.2048, 55.2708],
     ];
+
+    $key = strtoupper(trim($city)) . '|' . strtoupper(trim($countryCode));
+    return $coords[$key] ?? null;
 }
 
 /**
@@ -258,8 +357,8 @@ function trackSiteUniqueVisit(PDO $pdo): void
             $geo = analyticsLookupGeo($ip);
             $stmt = $pdo->prepare("
                 INSERT IGNORE INTO site_daily_visitors
-                    (visit_date, visitor_hash, ip_address, user_agent, landing_path, country_code, country_name, city, first_seen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                    (visit_date, visitor_hash, ip_address, user_agent, landing_path, country_code, country_name, region, city, latitude, longitude, first_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ");
             $stmt->execute([
                 $visitDate,
@@ -269,7 +368,10 @@ function trackSiteUniqueVisit(PDO $pdo): void
                 $path,
                 $geo['country_code'],
                 $geo['country_name'],
+                $geo['region'],
                 $geo['city'],
+                $geo['latitude'],
+                $geo['longitude'],
             ]);
         }
 
@@ -468,6 +570,7 @@ function analyticsCountUniqueNetworksSince(PDO $pdo, string $sinceDate): int
 function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
 {
     $days = max(7, min(365, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
     $series = [];
     $names = [];
     $top = [];
@@ -480,13 +583,13 @@ function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
                 MAX(country_name) AS name,
                 COUNT(*) AS c
             FROM site_daily_visitors
-            WHERE visit_date >= (CURDATE() - INTERVAL ? DAY)
+            WHERE visit_date >= ?
               AND country_code IS NOT NULL
               AND country_code <> ''
             GROUP BY UPPER(country_code)
             ORDER BY c DESC
         ");
-        $stmt->execute([$days - 1]);
+        $stmt->execute([$since]);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $code = (string) $row['code'];
             $count = (int) $row['c'];
@@ -506,14 +609,14 @@ function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
         $cityStmt = $pdo->prepare("
             SELECT UPPER(country_code) AS code, city, COUNT(*) AS c
             FROM site_daily_visitors
-            WHERE visit_date >= (CURDATE() - INTERVAL ? DAY)
+            WHERE visit_date >= ?
               AND country_code IS NOT NULL
               AND city IS NOT NULL
               AND city <> ''
             GROUP BY UPPER(country_code), city
             ORDER BY c DESC
         ");
-        $cityStmt->execute([$days - 1]);
+        $cityStmt->execute([$since]);
         $cityBest = [];
         foreach ($cityStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $code = (string) $row['code'];
@@ -532,10 +635,76 @@ function analyticsCountryBreakdown(PDO $pdo, int $days = 30): array
     return [
         'series' => $series,
         'names' => $names,
-        // Keep every located country in the list — small places like HK are easy to miss on the map.
+        // Keep every located country in the list; small places like HK are easy to miss on the map.
         'top' => $top,
         'total' => $total,
     ];
+}
+
+/**
+ * Approximate city / region points for map drill-down (last N days).
+ * Coordinates come from IP lookup when available, otherwise a small city fallback table.
+ *
+ * @return array<string, list<array{city:string,region:?string,count:int,lat:float,lon:float}>>
+ */
+function analyticsCityLocations(PDO $pdo, int $days = 30): array
+{
+    $days = max(7, min(365, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    $byCountry = [];
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT
+                UPPER(country_code) AS code,
+                COALESCE(NULLIF(TRIM(city), ''), 'Unknown area') AS city,
+                MAX(NULLIF(TRIM(region), '')) AS region,
+                AVG(latitude) AS lat,
+                AVG(longitude) AS lon,
+                COUNT(*) AS c
+            FROM site_daily_visitors
+            WHERE visit_date >= ?
+              AND country_code IS NOT NULL
+              AND country_code <> ''
+            GROUP BY UPPER(country_code), COALESCE(NULLIF(TRIM(city), ''), 'Unknown area')
+            ORDER BY c DESC
+        ");
+        $stmt->execute([$since]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $code = (string) $row['code'];
+            $city = (string) $row['city'];
+            $count = (int) $row['c'];
+            $lat = isset($row['lat']) && $row['lat'] !== null && $row['lat'] !== '' ? (float) $row['lat'] : null;
+            $lon = isset($row['lon']) && $row['lon'] !== null && $row['lon'] !== '' ? (float) $row['lon'] : null;
+
+            if (($lat === null || $lon === null) && $city !== 'Unknown area') {
+                $fallback = analyticsCityFallbackCoords($city, $code);
+                if ($fallback) {
+                    $lat = $fallback[0];
+                    $lon = $fallback[1];
+                }
+            }
+
+            if ($lat === null || $lon === null) {
+                continue;
+            }
+
+            if (!isset($byCountry[$code])) {
+                $byCountry[$code] = [];
+            }
+            $byCountry[$code][] = [
+                'city' => $city,
+                'region' => isset($row['region']) && $row['region'] !== '' ? (string) $row['region'] : null,
+                'count' => $count,
+                'lat' => round($lat, 5),
+                'lon' => round($lon, 5),
+            ];
+        }
+    } catch (Throwable $e) {
+        return [];
+    }
+
+    return $byCountry;
 }
 
 /**
