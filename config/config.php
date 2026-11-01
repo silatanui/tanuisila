@@ -301,6 +301,15 @@ function ensurePortfolioSchema(PDO $pdo): void {
     ");
 
     $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `admin_login_throttle` (
+            `ip_hash` CHAR(64) NOT NULL PRIMARY KEY,
+            `failures` INT UNSIGNED NOT NULL DEFAULT 0,
+            `locked_until` DATETIME NULL DEFAULT NULL,
+            `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
         CREATE TABLE IF NOT EXISTS `research_projects` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `source_id` INT NOT NULL UNIQUE,

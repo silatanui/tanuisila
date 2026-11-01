@@ -10,6 +10,7 @@ if (PHP_VERSION_ID >= 70300) {
 
 session_start();
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/admin_login_guard.php';
 
 // Security headers
 header('X-Content-Type-Options: nosniff');
@@ -32,14 +33,12 @@ $canCreateAdmin = $adminCount === 0;
 $setupMessage = $_GET['setup'] ?? '';
 
 $error = '';
-$max_attempts = 5;
-$lockout_time = 15 * 60; // 15 minutes
-$attempt_key = 'login_attempts_' . $_SERVER['REMOTE_ADDR'];
-$lockout_key = 'login_lockout_' . $_SERVER['REMOTE_ADDR'];
+$throttle = adminLoginThrottleStatus($pdo);
 
-// Check if IP is locked out
-if (isset($_SESSION[$lockout_key]) && time() < $_SESSION[$lockout_key]) {
-    $error = 'Too many login attempts. Please try again later.';
+// Durable IP lockout (stored in DB, not only in the browser session)
+if (!empty($throttle['locked'])) {
+    $mins = max(1, (int) ceil(((int) $throttle['retry_after']) / 60));
+    $error = 'Too many login attempts. Try again in about ' . $mins . ' minute' . ($mins === 1 ? '' : 's') . '.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
@@ -47,37 +46,34 @@ if (isset($_SESSION[$lockout_key]) && time() < $_SESSION[$lockout_key]) {
     } else {
         $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
+        $isValidLogin = false;
 
-        // Rate limiting
-        $attempts = $_SESSION[$attempt_key] ?? 0;
-        if ($attempts >= $max_attempts) {
-            $_SESSION[$lockout_key] = time() + $lockout_time;
-            $error = 'Too many login attempts. Please try again later.';
-        } else {
-          $isValidLogin = false;
+        $stmt = $pdo->prepare('SELECT password_hash FROM admin_users WHERE username = :username AND is_active = 1 LIMIT 1');
+        $stmt->execute([':username' => $username]);
+        $adminUser = $stmt->fetch();
 
-          $stmt = $pdo->prepare('SELECT password_hash FROM admin_users WHERE username = :username AND is_active = 1 LIMIT 1');
-          $stmt->execute([':username' => $username]);
-          $adminUser = $stmt->fetch();
-
-          if ($adminUser && isset($adminUser['password_hash'])) {
+        if ($adminUser && isset($adminUser['password_hash'])) {
             $isValidLogin = password_verify($password, $adminUser['password_hash']);
-          } elseif ($username === ADMIN_USERNAME && $password === ADMIN_PASSWORD) {
+        } elseif ($username === ADMIN_USERNAME && $password === ADMIN_PASSWORD && ADMIN_PASSWORD !== '') {
             // Backward compatibility when DB admin record has not been created yet.
             $isValidLogin = true;
-          }
+        }
 
-          if ($isValidLogin) {
+        if ($isValidLogin) {
+            adminLoginClearThrottle($pdo);
+            session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
-            unset($_SESSION[$attempt_key]);
-            unset($_SESSION[$lockout_key]);
             header('Location: index.php');
             exit;
-          }
+        }
 
-          $attempts++;
-          $_SESSION[$attempt_key] = $attempts;
-          $error = 'Invalid credentials.';
+        $throttle = adminLoginRegisterFailure($pdo);
+        if (!empty($throttle['locked'])) {
+            $mins = max(1, (int) ceil(((int) $throttle['lockout_seconds']) / 60));
+            $error = 'Too many login attempts. Try again in about ' . $mins . ' minute' . ($mins === 1 ? '' : 's') . '.';
+        } else {
+            $remaining = max(0, (int) $throttle['max_attempts'] - (int) $throttle['failures']);
+            $error = 'Invalid credentials. ' . $remaining . ' attempt' . ($remaining === 1 ? '' : 's') . ' left before a temporary lockout.';
         }
     }
 }
