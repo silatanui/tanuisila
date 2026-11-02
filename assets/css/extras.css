@@ -3199,6 +3199,7 @@
   font-size: clamp(1rem, 1.5vw, 1.08rem);
   line-height: 1em;
   color: var(--muted);
+  max-width: 40rem;
 }
 
 .path-hero__meta {
@@ -3410,7 +3411,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-  line-height: 1.35;
+  line-height: 1em;
 }
 
 .path-card__sep {
@@ -3468,10 +3469,29 @@
   padding: 6px 10px;
 }
 
-.path-card__body {
+.path-shell p,
+.path-shell li {
+  line-height: 1em;
+}
+
+.path-card__split {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--light-gray);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 36px);
+  align-items: start;
+}
+
+.path-card__detail {
+  min-width: 0;
+}
+
+.path-card__body {
+  margin: 0;
+  padding: 0;
+  border: none;
   color: #334155;
   font-size: 0.95rem;
   line-height: 1em;
@@ -3479,12 +3499,16 @@
 
 .path-card__bullets {
   list-style: none;
-  margin: 16px 0 0;
-  padding: 16px 0 0;
+  margin: 14px 0 0;
+  padding: 14px 0 0;
   border-top: 1px solid var(--light-gray);
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.path-card__detail .path-card__body + .path-card__bullets {
+  margin-top: 14px;
 }
 
 .path-card__bullets li {
@@ -3499,10 +3523,70 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 0.55em;
+  top: 0.45em;
   width: 7px;
   height: 7px;
   background: var(--accent);
+}
+
+.path-card__aside {
+  min-width: 0;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid var(--light-gray);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+}
+
+.path-card__aside-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  line-height: 1em;
+}
+
+.path-card__aside-name {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.path-card__aside-meta {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1em;
+}
+
+.path-card__site--block {
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.path-card__aside-host {
+  margin: 4px 0 0;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.74rem;
+  color: var(--muted);
+  word-break: break-all;
+  line-height: 1em;
+}
+
+/* Education keeps body/bullets under chips without the split wrapper */
+.path-card:not(.path-card--experience) > .path-card__panel > .path-card__body,
+.path-card:not(.path-card--experience) > .path-card__panel > .path-card__bullets {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--light-gray);
 }
 
 .path-empty {
@@ -3601,6 +3685,12 @@
 .path-cta__btn--primary:hover {
   background: #c2410c;
   border-color: #c2410c;
+}
+
+@media (max-width: 900px) {
+  .path-card__split {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {

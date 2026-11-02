@@ -18,11 +18,33 @@ function exp_logo_file(string $company): string {
   return '';
 }
 
+function exp_company_website(string $company): string {
+  $company = strtolower($company);
+  if (strpos($company, 'transcosmos') !== false || strpos($company, 'fossil') !== false) {
+    return 'https://trans-cosmos.eu/locations/debrecen/';
+  }
+  if (strpos($company, 'infolink') !== false) {
+    return 'https://www.infolinkcollege.com/';
+  }
+  if (strpos($company, 'litmed') !== false) {
+    return 'https://www.litmed.ac.ke/';
+  }
+  return '';
+}
+
 function exp_parse_details(string $raw): array {
   $raw = trim($raw);
   if ($raw === '') {
-    return ['summary' => '', 'chips' => [], 'bullets' => []];
+    return ['summary' => '', 'chips' => [], 'bullets' => [], 'website' => ''];
   }
+
+  $website = '';
+  if (preg_match('#(?:Website:\s*)?(https?://[^\s]+)#i', $raw, $m)) {
+    $website = rtrim($m[1], '.,);');
+  }
+
+  $raw = preg_replace('/^\s*Website:\s*https?:\/\/\S+\s*$/mi', '', $raw) ?? $raw;
+  $raw = trim($raw);
 
   $parts = preg_split('/(?:\R|^)\s*[▪•\-]\s+/u', $raw) ?: [];
   $parts = array_values(array_filter(array_map('trim', $parts)));
@@ -32,14 +54,15 @@ function exp_parse_details(string $raw): array {
   $bullets = [];
 
   if ($parts === []) {
-    return ['summary' => $raw, 'chips' => [], 'bullets' => []];
+    return ['summary' => $raw, 'chips' => [], 'bullets' => [], 'website' => $website];
   }
 
-  // Text before the first bullet marker becomes summary + optional chip line.
   $preamble = array_shift($parts);
   if ($preamble !== null && $preamble !== '') {
     $preLines = preg_split('/\R+/', $preamble) ?: [];
-    $preLines = array_values(array_filter(array_map('trim', $preLines)));
+    $preLines = array_values(array_filter(array_map('trim', $preLines), static function ($line) {
+      return $line !== '' && stripos($line, 'website:') !== 0 && !preg_match('#^https?://#i', $line);
+    }));
 
     if ($preLines !== []) {
       $last = $preLines[count($preLines) - 1];
@@ -49,7 +72,7 @@ function exp_parse_details(string $raw): array {
 
       if ($looksLikeChips) {
         foreach (array_map('trim', explode('|', $last)) as $chip) {
-          if ($chip !== '') {
+          if ($chip !== '' && !preg_match('#^https?://#i', $chip)) {
             $chips[] = $chip;
           }
         }
@@ -66,7 +89,6 @@ function exp_parse_details(string $raw): array {
     }
   }
 
-  // Fallback: plain multiline text without markers.
   if ($bullets === [] && $summary === '' && strpos($raw, "\n") !== false) {
     $lines = preg_split('/\R+/', $raw) ?: [];
     $bullets = array_values(array_filter(array_map('trim', $lines)));
@@ -76,12 +98,21 @@ function exp_parse_details(string $raw): array {
     'summary' => $summary,
     'chips' => $chips,
     'bullets' => $bullets,
+    'website' => $website,
   ];
 }
 
 function exp_is_current(string $endDate): bool {
   $endDate = trim($endDate);
   return $endDate === '' || strcasecmp($endDate, 'present') === 0;
+}
+
+function exp_site_label(string $company): string {
+  $company = strtolower($company);
+  if (strpos($company, 'college') !== false || strpos($company, 'university') !== false) {
+    return 'Visit school';
+  }
+  return 'Visit company';
 }
 ?>
 
@@ -121,10 +152,12 @@ function exp_is_current(string $endDate): bool {
           $current = exp_is_current($end);
           $when = $start . ' - ' . ($current ? 'Present' : $end);
           $parsed = exp_parse_details((string) ($item['description'] ?? ''));
+          $website = $parsed['website'] !== '' ? $parsed['website'] : exp_company_website((string) ($item['company'] ?? ''));
           $initials = preg_replace('/[^A-Z]/', '', strtoupper(preg_replace('/\b(\w)\w*/', '$1', (string) ($item['company'] ?? 'EX'))));
           $initials = substr($initials !== '' ? $initials : 'EX', 0, 2);
+          $hasDetail = $parsed['summary'] !== '' || !empty($parsed['bullets']);
         ?>
-          <li class="path-card reveal-on-enter<?php echo $current ? ' path-card--current' : ''; ?>" style="--path-i: <?php echo (int) $index; ?>">
+          <li class="path-card path-card--experience reveal-on-enter<?php echo $current ? ' path-card--current' : ''; ?>" style="--path-i: <?php echo (int) $index; ?>">
             <div class="path-card__rail" aria-hidden="true">
               <span class="path-card__dot"></span>
             </div>
@@ -164,6 +197,18 @@ function exp_is_current(string $endDate): bool {
                     </p>
                   </div>
                 </div>
+
+                <?php if ($website !== ''): ?>
+                  <a
+                    class="path-card__site"
+                    href="<?php echo htmlspecialchars($website, ENT_QUOTES, 'UTF-8'); ?>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <?php echo htmlspecialchars(exp_site_label((string) ($item['company'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
+                    <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                  </a>
+                <?php endif; ?>
               </div>
 
               <?php if (!empty($parsed['chips'])): ?>
@@ -174,18 +219,44 @@ function exp_is_current(string $endDate): bool {
                 </ul>
               <?php endif; ?>
 
-              <?php if ($parsed['summary'] !== ''): ?>
-                <div class="path-card__body">
-                  <?php echo htmlspecialchars($parsed['summary'], ENT_QUOTES, 'UTF-8'); ?>
-                </div>
-              <?php endif; ?>
+              <?php if ($hasDetail): ?>
+                <div class="path-card__split">
+                  <div class="path-card__detail">
+                    <?php if ($parsed['summary'] !== ''): ?>
+                      <div class="path-card__body">
+                        <?php echo htmlspecialchars($parsed['summary'], ENT_QUOTES, 'UTF-8'); ?>
+                      </div>
+                    <?php endif; ?>
 
-              <?php if (!empty($parsed['bullets'])): ?>
-                <ul class="path-card__bullets">
-                  <?php foreach ($parsed['bullets'] as $bullet): ?>
-                    <li><?php echo htmlspecialchars($bullet, ENT_QUOTES, 'UTF-8'); ?></li>
-                  <?php endforeach; ?>
-                </ul>
+                    <?php if (!empty($parsed['bullets'])): ?>
+                      <ul class="path-card__bullets">
+                        <?php foreach ($parsed['bullets'] as $bullet): ?>
+                          <li><?php echo htmlspecialchars($bullet, ENT_QUOTES, 'UTF-8'); ?></li>
+                        <?php endforeach; ?>
+                      </ul>
+                    <?php endif; ?>
+                  </div>
+
+                  <?php if ($website !== ''): ?>
+                    <aside class="path-card__aside">
+                      <p class="path-card__aside-label">Institution website</p>
+                      <p class="path-card__aside-name"><?php echo htmlspecialchars((string) ($item['company'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
+                      <?php if (!empty($item['location'])): ?>
+                        <p class="path-card__aside-meta"><?php echo htmlspecialchars((string) $item['location'], ENT_QUOTES, 'UTF-8'); ?></p>
+                      <?php endif; ?>
+                      <a
+                        class="path-card__site path-card__site--block"
+                        href="<?php echo htmlspecialchars($website, ENT_QUOTES, 'UTF-8'); ?>"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <?php echo htmlspecialchars(exp_site_label((string) ($item['company'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
+                        <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                      </a>
+                      <p class="path-card__aside-host"><?php echo htmlspecialchars(preg_replace('#^https?://#', '', rtrim($website, '/')), ENT_QUOTES, 'UTF-8'); ?></p>
+                    </aside>
+                  <?php endif; ?>
+                </div>
               <?php endif; ?>
             </div>
           </li>
