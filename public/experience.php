@@ -1,54 +1,208 @@
 <?php
 $activePage = 'experience';
 require_once __DIR__ . '/header.php';
+
+$expCount = count($experience);
+
+function exp_logo_file(string $company): string {
+  $company = strtolower($company);
+  if (strpos($company, 'transcosmos') !== false) {
+    return 'transcosmos.png';
+  }
+  if (strpos($company, 'litmed') !== false) {
+    return 'litmed_college_kerugoya.png';
+  }
+  if (strpos($company, 'infolink') !== false) {
+    return 'infolink_college_of_technology.png';
+  }
+  return '';
+}
+
+function exp_parse_details(string $raw): array {
+  $raw = trim($raw);
+  if ($raw === '') {
+    return ['summary' => '', 'chips' => [], 'bullets' => []];
+  }
+
+  $parts = preg_split('/(?:\R|^)\s*[▪•\-]\s+/u', $raw) ?: [];
+  $parts = array_values(array_filter(array_map('trim', $parts)));
+
+  $summary = '';
+  $chips = [];
+  $bullets = [];
+
+  if ($parts === []) {
+    return ['summary' => $raw, 'chips' => [], 'bullets' => []];
+  }
+
+  // Text before the first bullet marker becomes summary + optional chip line.
+  $preamble = array_shift($parts);
+  if ($preamble !== null && $preamble !== '') {
+    $preLines = preg_split('/\R+/', $preamble) ?: [];
+    $preLines = array_values(array_filter(array_map('trim', $preLines)));
+
+    if ($preLines !== []) {
+      $last = $preLines[count($preLines) - 1];
+      $looksLikeChips = strpos($last, '|') !== false
+        && !preg_match('/[.!?]$/', $last)
+        && substr_count($last, ' ') <= 18;
+
+      if ($looksLikeChips) {
+        foreach (array_map('trim', explode('|', $last)) as $chip) {
+          if ($chip !== '') {
+            $chips[] = $chip;
+          }
+        }
+        array_pop($preLines);
+      }
+
+      $summary = trim(implode(' ', $preLines));
+    }
+  }
+
+  foreach ($parts as $part) {
+    if ($part !== '') {
+      $bullets[] = preg_replace('/\s+/', ' ', $part) ?? $part;
+    }
+  }
+
+  // Fallback: plain multiline text without markers.
+  if ($bullets === [] && $summary === '' && strpos($raw, "\n") !== false) {
+    $lines = preg_split('/\R+/', $raw) ?: [];
+    $bullets = array_values(array_filter(array_map('trim', $lines)));
+  }
+
+  return [
+    'summary' => $summary,
+    'chips' => $chips,
+    'bullets' => $bullets,
+  ];
+}
+
+function exp_is_current(string $endDate): bool {
+  $endDate = trim($endDate);
+  return $endDate === '' || strcasecmp($endDate, 'present') === 0;
+}
 ?>
 
-<main class="container">
-  <section id="experience" class="section-row" style="border-bottom:none;">
-    <div class="section-label">Experience</div>
-    <div class="section-content">
-      <h2>Professional Background</h2>
-      <div class="timeline-rows">
-        <?php foreach ($experience as $item): ?>
-          <?php 
-            // Select matching company logo for Sila's experience entries
-            $companyLogo = '';
-            $company = strtolower($item['company']);
-            if (strpos($company, 'transcosmos') !== false) {
-                $companyLogo = 'transcosmos.png';
-            } elseif (strpos($company, 'litmed') !== false) {
-                $companyLogo = 'litmed_college_kerugoya.png';
-            } elseif (strpos($company, 'infolink') !== false) {
-                $companyLogo = 'infolink_college_of_technology.png';
-            }
-          ?>
-          <div class="timeline-row">
-            <div class="time-meta"><?php echo htmlspecialchars($item['start_date']); ?> - <?php echo htmlspecialchars($item['end_date'] ?: 'Present'); ?></div>
-            <div class="timeline-desc" style="display: flex; gap: 20px; align-items: flex-start;">
-              <?php if (!empty($companyLogo)): ?>
-                <div class="img-skeleton-wrap" style="flex-shrink: 0; width: 64px; height: 64px; padding: 4px; background: var(--soft-bg); border: 1px solid var(--light-gray); display: flex; align-items: center; justify-content: center;">
-                  <img 
-                    src="<?php echo htmlspecialchars(appUrl('public/' . $companyLogo), ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo @filemtime(__DIR__ . '/' . $companyLogo); ?>" 
-                    alt="<?php echo htmlspecialchars($item['company']); ?> Logo" 
-                    loading="lazy"
-                    decoding="async"
-                    style="max-width: 100%; max-height: 100%; object-fit: contain;"
-                    onload="this.closest('.img-skeleton-wrap').classList.add('loaded')"
-                  >
+<main id="main-content" class="path-shell">
+  <div class="path-shell__bg" aria-hidden="true"></div>
+
+  <section class="container path-page">
+    <header class="path-hero reveal-on-enter">
+      <div class="path-hero__copy">
+        <p class="path-hero__eyebrow">Professional path</p>
+        <h1 class="path-hero__title">Experience</h1>
+        <p class="path-hero__lede">
+          From classroom instruction and campus IT to international customer success
+          on enterprise commerce stacks - roles shaped around clear thinking,
+          reliable systems, and helping people get unstuck.
+        </p>
+        <div class="path-hero__meta">
+          <span class="path-hero__count"><?php echo (int) $expCount; ?> role<?php echo $expCount === 1 ? '' : 's'; ?></span>
+          <a class="path-hero__jump" href="<?php echo appUrl('public/education.php'); ?>">View education</a>
+          <a class="path-hero__jump path-hero__jump--muted" href="<?php echo appUrl('public/contact.php'); ?>">Get in touch</a>
+        </div>
+      </div>
+    </header>
+
+    <?php if (empty($experience)): ?>
+      <div class="path-empty reveal-on-enter">
+        <p>Experience details are being updated.</p>
+      </div>
+    <?php else: ?>
+      <ol class="path-timeline">
+        <?php foreach ($experience as $index => $item):
+          $logo = exp_logo_file((string) ($item['company'] ?? ''));
+          $logoPath = $logo !== '' ? __DIR__ . '/' . $logo : '';
+          $hasLogo = $logo !== '' && is_file($logoPath);
+          $start = trim((string) ($item['start_date'] ?? ''));
+          $end = trim((string) ($item['end_date'] ?? ''));
+          $current = exp_is_current($end);
+          $when = $start . ' - ' . ($current ? 'Present' : $end);
+          $parsed = exp_parse_details((string) ($item['description'] ?? ''));
+          $initials = preg_replace('/[^A-Z]/', '', strtoupper(preg_replace('/\b(\w)\w*/', '$1', (string) ($item['company'] ?? 'EX'))));
+          $initials = substr($initials !== '' ? $initials : 'EX', 0, 2);
+        ?>
+          <li class="path-card reveal-on-enter<?php echo $current ? ' path-card--current' : ''; ?>" style="--path-i: <?php echo (int) $index; ?>">
+            <div class="path-card__rail" aria-hidden="true">
+              <span class="path-card__dot"></span>
+            </div>
+
+            <div class="path-card__panel">
+              <div class="path-card__top">
+                <div class="path-card__brand">
+                  <?php if ($hasLogo): ?>
+                    <div class="path-card__logo">
+                      <img
+                        src="<?php echo htmlspecialchars(appUrl('public/' . $logo), ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo (int) filemtime($logoPath); ?>"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width="64"
+                        height="64"
+                      >
+                    </div>
+                  <?php else: ?>
+                    <div class="path-card__mark" aria-hidden="true"><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?></div>
+                  <?php endif; ?>
+
+                  <div class="path-card__heading">
+                    <div class="path-card__when-row">
+                      <p class="path-card__when"><?php echo htmlspecialchars($when, ENT_QUOTES, 'UTF-8'); ?></p>
+                      <?php if ($current): ?>
+                        <span class="path-card__live"><i class="fa-solid fa-circle" aria-hidden="true"></i> Current</span>
+                      <?php endif; ?>
+                    </div>
+                    <h2 class="path-card__title"><?php echo htmlspecialchars($item['role_name'] ?? 'Role', ENT_QUOTES, 'UTF-8'); ?></h2>
+                    <p class="path-card__org">
+                      <?php echo htmlspecialchars($item['company'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                      <?php if (!empty($item['location'])): ?>
+                        <span class="path-card__sep">·</span>
+                        <span class="path-card__field"><?php echo htmlspecialchars($item['location'], ENT_QUOTES, 'UTF-8'); ?></span>
+                      <?php endif; ?>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <?php if (!empty($parsed['chips'])): ?>
+                <ul class="path-card__chips">
+                  <?php foreach ($parsed['chips'] as $chip): ?>
+                    <li><?php echo htmlspecialchars($chip, ENT_QUOTES, 'UTF-8'); ?></li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php endif; ?>
+
+              <?php if ($parsed['summary'] !== ''): ?>
+                <div class="path-card__body">
+                  <?php echo htmlspecialchars($parsed['summary'], ENT_QUOTES, 'UTF-8'); ?>
                 </div>
               <?php endif; ?>
-              <div style="flex-grow: 1;">
-                <h4 style="margin: 0 0 4px;"><?php echo htmlspecialchars($item['role_name']); ?></h4>
-                <div class="timeline-institution" style="margin-bottom: 8px;"><?php echo htmlspecialchars($item['company']); ?> · <span style="font-weight: 400; color: var(--accent-muted);"><?php echo htmlspecialchars($item['location']); ?></span></div>
-                <?php if (!empty($item['description'])): ?>
-                  <div class="timeline-body" style="margin-top: 8px;"><?php echo nl2br(htmlspecialchars($item['description'])); ?></div>
-                <?php endif; ?>
-              </div>
+
+              <?php if (!empty($parsed['bullets'])): ?>
+                <ul class="path-card__bullets">
+                  <?php foreach ($parsed['bullets'] as $bullet): ?>
+                    <li><?php echo htmlspecialchars($bullet, ENT_QUOTES, 'UTF-8'); ?></li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php endif; ?>
             </div>
-          </div>
+          </li>
         <?php endforeach; ?>
+      </ol>
+    <?php endif; ?>
+
+    <aside class="path-cta reveal-on-enter">
+      <div>
+        <p class="path-cta__eyebrow">Next</p>
+        <h2 class="path-cta__title">Want the academic side of the same story?</h2>
       </div>
-    </div>
+      <div class="path-cta__actions">
+        <a class="path-cta__btn path-cta__btn--primary" href="<?php echo appUrl('public/education.php'); ?>">Education</a>
+        <a class="path-cta__btn" href="<?php echo appUrl('public/contact.php'); ?>">Get in touch</a>
+      </div>
+    </aside>
   </section>
 </main>
 

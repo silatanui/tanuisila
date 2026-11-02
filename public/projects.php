@@ -3,20 +3,6 @@ $activePage = 'projects';
 require_once __DIR__ . '/header.php';
 
 $projectCount = count($projects);
-$allTags = [];
-foreach ($projects as $p) {
-  if (empty($p['tags'])) {
-    continue;
-  }
-  foreach (array_map('trim', explode(',', $p['tags'])) as $tag) {
-    if ($tag !== '') {
-      $allTags[$tag] = true;
-    }
-  }
-}
-$allTags = array_keys($allTags);
-natcasesort($allTags);
-$allTags = array_values($allTags);
 
 function project_resolve_image(array $p): string {
   if (!empty($p['image'])) {
@@ -32,11 +18,108 @@ function project_resolve_image(array $p): string {
     }
     return appUrl('public/' . $rawImg);
   }
-  if (stripos($p['title'] ?? '', 'cv') !== false) {
-    return appUrl('public/cv_studio.png');
-  }
   return '';
 }
+
+function project_category_label(array $p): string {
+  $title = strtolower(trim((string) ($p['title'] ?? '')));
+  $tags = strtolower((string) ($p['tags'] ?? ''));
+  if (str_contains($title, 'commerce') || str_contains($tags, 'e-commerce') || str_contains($title, 'university')) {
+    return 'Websites';
+  }
+  return 'Apps';
+}
+
+function project_short_desc(array $p, int $max = 88): string {
+  $desc = preg_replace('/\s+/', ' ', trim((string) ($p['description'] ?? '')));
+  if ($desc === '') {
+    return 'Open the live project';
+  }
+  if (strlen($desc) <= $max) {
+    return $desc;
+  }
+  return rtrim(substr($desc, 0, $max - 3)) . '...';
+}
+
+function project_commerce_slides(): array {
+  $base = __DIR__ . '/../assets/images/projects';
+  $slides = [
+    [
+      'label' => 'Fashion',
+      'file' => 'commerce-fashion.png',
+      'url' => 'https://tanuisila.dev/commerce/store/fashion',
+    ],
+    [
+      'label' => 'Electronics',
+      'file' => 'commerce-electronics.png',
+      'url' => 'https://tanuisila.dev/commerce/store/electronics',
+    ],
+    [
+      'label' => 'Home',
+      'file' => 'commerce-home.png',
+      'url' => 'https://tanuisila.dev/commerce/store/home',
+    ],
+    [
+      'label' => 'Market',
+      'file' => 'commerce-market.png',
+      'url' => 'https://tanuisila.dev/commerce/store/market',
+    ],
+  ];
+
+  $out = [];
+  foreach ($slides as $slide) {
+    $path = $base . '/' . $slide['file'];
+    if (!is_file($path)) {
+      continue;
+    }
+    $out[] = [
+      'label' => $slide['label'],
+      'url' => $slide['url'],
+      'src' => appUrl('assets/images/projects/' . $slide['file']) . '?v=' . (int) filemtime($path),
+    ];
+  }
+  return $out;
+}
+
+function project_subcategories(array $p): array {
+  $title = strtolower(trim((string) ($p['title'] ?? '')));
+  $tags = strtolower((string) ($p['tags'] ?? ''));
+  $hay = $title . ' ' . $tags;
+  $subs = [];
+
+  $rules = [
+    'AI' => ['ai', 'openai', 'assistant', 'detector', 'humanizer'],
+    'Automation' => ['automation', 'rea'],
+    'Developer Tools' => ['reverse engineering', 'rea', 'quire'],
+    'Ecommerce' => ['commerce', 'e-commerce', 'store'],
+    'Education' => ['university', 'moodle', 'education', 'lms', 'e-learning', 'edtech'],
+    'LMS' => ['moodle', 'lms', 'learning management'],
+    'Music' => ['lyric', 'music', 'song'],
+    'Resume' => ['cv', 'resume', 'ats', 'cover letter'],
+    'SaaS' => ['cv studio', 'flyleaf', 'saas', 'studio'],
+  ];
+
+  foreach ($rules as $label => $needles) {
+    foreach ($needles as $needle) {
+      if (str_contains($hay, $needle)) {
+        $subs[$label] = true;
+        break;
+      }
+    }
+  }
+
+  return array_keys($subs);
+}
+
+$subcategorySet = [];
+foreach ($projects as $p) {
+  foreach (project_subcategories($p) as $sub) {
+    $subcategorySet[$sub] = true;
+  }
+}
+$subcategories = array_keys($subcategorySet);
+natcasesort($subcategories);
+$subcategories = array_values($subcategories);
 ?>
 
 <main id="main-content" class="proj-shell">
@@ -46,27 +129,11 @@ function project_resolve_image(array $p): string {
     <header class="proj-hero reveal-on-enter">
       <div class="proj-hero__copy">
         <p class="proj-hero__eyebrow">Selected work</p>
-        <h1 class="proj-hero__title">Projects built to ship</h1>
+        <h1 class="proj-hero__title">Projects</h1>
         <p class="proj-hero__lede">
-          Production software, AI tools, and systems designed around a real problem,
-          a clear stack, and a live surface you can open.
+          Live products and tools. Open any card to launch the hosted project.
         </p>
-        <div class="proj-hero__meta">
-          <span class="proj-hero__count"><?php echo (int) $projectCount; ?> project<?php echo $projectCount === 1 ? '' : 's'; ?></span>
-          <?php if ($projectCount > 0): ?>
-            <a class="proj-hero__jump" href="#project-list">Browse work</a>
-          <?php endif; ?>
-          <a class="proj-hero__jump proj-hero__jump--muted" href="<?php echo appUrl('public/contact.php'); ?>">Propose something</a>
-        </div>
       </div>
-      <aside class="proj-hero__aside" aria-label="How to read this page">
-        <p class="proj-hero__aside-label">On each project</p>
-        <ul class="proj-hero__checklist">
-          <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Problem and outcome</li>
-          <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Stack and surface</li>
-          <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Live launch when available</li>
-        </ul>
-      </aside>
     </header>
 
     <?php if (empty($projects)): ?>
@@ -77,145 +144,179 @@ function project_resolve_image(array $p): string {
       </div>
     <?php else: ?>
 
-      <?php if (count($allTags) > 1): ?>
-        <div class="proj-filters reveal-on-enter" role="toolbar" aria-label="Filter projects by technology">
-          <span class="proj-filters__label">Filter</span>
-          <button type="button" class="proj-filter is-active" data-filter="all">All</button>
-          <?php foreach ($allTags as $tag): ?>
-            <button type="button" class="proj-filter" data-filter="<?php echo htmlspecialchars(strtolower($tag), ENT_QUOTES, 'UTF-8'); ?>">
-              <?php echo htmlspecialchars($tag, ENT_QUOTES, 'UTF-8'); ?>
-            </button>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+      <div class="proj-layout">
+        <aside class="proj-sidepanel reveal-on-enter" aria-label="Filter projects">
+          <div class="proj-sidepanel__group">
+            <h2 class="proj-sidepanel__heading">Category</h2>
+            <div class="proj-sidepanel__cats" role="tablist" aria-label="Project category">
+              <button type="button" class="proj-sidepanel__cat is-active" data-category="all" role="tab" aria-selected="true">All</button>
+              <button type="button" class="proj-sidepanel__cat" data-category="websites" role="tab" aria-selected="false">Websites</button>
+              <button type="button" class="proj-sidepanel__cat" data-category="apps" role="tab" aria-selected="false">Apps</button>
+            </div>
+          </div>
 
-      <div id="project-list" class="proj-list">
-        <?php foreach ($projects as $index => $p):
-          $pImg = project_resolve_image($p);
-          $tagList = [];
-          if (!empty($p['tags'])) {
-            $tagList = array_values(array_filter(array_map('trim', explode(',', $p['tags']))));
-          }
-          $tagData = strtolower(implode(' ', $tagList));
-          $num = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
-          $featured = $index === 0;
-          $flip = (!$featured) && ($index % 2 === 0) && !empty($pImg);
-          $host = '';
-          if (!empty($p['url'])) {
-            $host = preg_replace('#^https?://#', '', rtrim($p['url'], '/'));
-          }
-          $slug = 'project-' . (int) $p['id'];
-          $desc = trim((string) ($p['description'] ?? ''));
-        ?>
-          <article
-            id="<?php echo htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'); ?>"
-            class="proj-case reveal-on-enter<?php echo $featured ? ' proj-case--featured' : ''; ?><?php echo $flip ? ' proj-case--flip' : ''; ?><?php echo empty($pImg) ? ' proj-case--text' : ''; ?>"
-            data-tags="<?php echo htmlspecialchars($tagData, ENT_QUOTES, 'UTF-8'); ?>"
-            data-project-id="<?php echo (int) $p['id']; ?>"
-          >
-            <div class="proj-case__index" aria-hidden="true"><?php echo $num; ?></div>
-
-            <div class="proj-case__grid">
-              <div class="proj-case__media">
-                <div class="proj-mockup">
-                  <div class="proj-mockup__bar">
-                    <span class="proj-mockup__dots" aria-hidden="true"></span>
-                    <span class="proj-mockup__url"><?php echo htmlspecialchars($host ?: 'tanuisila.dev', ENT_QUOTES, 'UTF-8'); ?></span>
-                    <?php if (!empty($p['url'])): ?>
-                      <span class="proj-mockup__hint" aria-hidden="true">Open</span>
-                    <?php endif; ?>
-                  </div>
-                  <?php if (!empty($p['url'])): ?>
-                    <a
-                      class="proj-mockup__shot js-project-launch"
-                      href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-project-id="<?php echo (int) $p['id']; ?>"
-                      title="Open <?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?>"
+          <?php if (!empty($subcategories)): ?>
+            <div class="proj-sidepanel__group">
+              <h2 class="proj-sidepanel__heading">Subcategory</h2>
+              <div class="proj-sidepanel__subs" role="group" aria-label="Project subcategories">
+                <?php foreach ($subcategories as $sub):
+                  $subId = 'proj-sub-' . preg_replace('/[^a-z0-9]+/i', '-', strtolower($sub));
+                ?>
+                  <label class="proj-sidepanel__sub" for="<?php echo htmlspecialchars($subId, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input
+                      id="<?php echo htmlspecialchars($subId, ENT_QUOTES, 'UTF-8'); ?>"
+                      class="proj-sidepanel__check"
+                      type="checkbox"
+                      value="<?php echo htmlspecialchars(strtolower($sub), ENT_QUOTES, 'UTF-8'); ?>"
                     >
-                  <?php else: ?>
-                    <div class="proj-mockup__shot">
-                  <?php endif; ?>
-                      <div class="<?php echo $pImg ? 'img-skeleton-wrap' : ''; ?> proj-mockup__frame<?php echo $pImg ? '' : ' proj-mockup__frame--empty'; ?>">
-                        <?php if ($pImg): ?>
-                          <img
-                            src="<?php echo htmlspecialchars($pImg, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo time(); ?>"
-                            alt="<?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?> screenshot"
-                            loading="<?php echo $featured ? 'eager' : 'lazy'; ?>"
-                            decoding="async"
-                            <?php echo $featured ? 'fetchpriority="high"' : ''; ?>
-                            onload="var w=this.closest('.img-skeleton-wrap'); if(w) w.classList.add('loaded')"
-                          >
-                        <?php else: ?>
-                          <?php echo media_placeholder($p['title'] ?? '', 'media-ph--project'); ?>
-                        <?php endif; ?>
-                      </div>
-                  <?php if (!empty($p['url'])): ?>
-                    </a>
-                  <?php else: ?>
-                    </div>
-                  <?php endif; ?>
-                </div>
-              </div>
-
-              <div class="proj-case__body">
-                <div class="proj-case__status">
-                  <?php if (!empty($p['url'])): ?>
-                    <span class="proj-live"><i class="fa-solid fa-circle" aria-hidden="true"></i> Live</span>
-                  <?php else: ?>
-                    <span class="proj-case__badge">Case study</span>
-                  <?php endif; ?>
-                  <?php if ($featured): ?>
-                    <span class="proj-case__badge proj-case__badge--accent">Featured</span>
-                  <?php endif; ?>
-                  <span class="proj-case__num">Project <?php echo $num; ?></span>
-                </div>
-
-                <h2 class="proj-case__title"><?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?></h2>
-
-                <?php if ($desc !== ''): ?>
-                  <p class="proj-case__desc">
-                    <?php echo nl2br(htmlspecialchars($desc, ENT_QUOTES, 'UTF-8')); ?>
-                  </p>
-                <?php endif; ?>
-
-                <?php if (!empty($tagList)): ?>
-                  <div class="proj-case__stack">
-                    <span class="proj-case__stack-label">Stack</span>
-                    <ul class="proj-tech">
-                      <?php foreach ($tagList as $tag): ?>
-                        <li><?php echo htmlspecialchars($tag, ENT_QUOTES, 'UTF-8'); ?></li>
-                      <?php endforeach; ?>
-                    </ul>
-                  </div>
-                <?php endif; ?>
-
-                <div class="proj-case__actions">
-                  <?php if (!empty($p['url'])): ?>
-                    <a
-                      class="btn primary js-project-launch"
-                      href="<?php echo htmlspecialchars($p['url'], ENT_QUOTES, 'UTF-8'); ?>"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-project-id="<?php echo (int) $p['id']; ?>"
-                    >
-                      Launch live <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                    </a>
-                    <span class="proj-case__host"><?php echo htmlspecialchars($host, ENT_QUOTES, 'UTF-8'); ?></span>
-                  <?php else: ?>
-                    <span class="proj-case__host">Demo link coming soon</span>
-                  <?php endif; ?>
-                </div>
+                    <span class="proj-sidepanel__box" aria-hidden="true"></span>
+                    <span class="proj-sidepanel__label"><?php echo htmlspecialchars($sub, ENT_QUOTES, 'UTF-8'); ?></span>
+                  </label>
+                <?php endforeach; ?>
               </div>
             </div>
-          </article>
-        <?php endforeach; ?>
-      </div>
+          <?php endif; ?>
+        </aside>
 
-      <p class="proj-filter-empty" id="proj-filter-empty" hidden>
-        No projects match that filter. <button type="button" class="proj-filter-reset" data-filter="all">Show all</button>
-      </p>
+        <div class="proj-main">
+          <div class="proj-main__bar">
+            <h2 class="proj-main__title" id="proj-results-title">All projects (<?php echo (int) $projectCount; ?>)</h2>
+            <button type="button" class="proj-main__clear" id="proj-clear-filters" hidden>Clear filters</button>
+          </div>
+
+          <div id="project-list" class="proj-gallery">
+            <?php foreach ($projects as $p):
+              $pImg = project_resolve_image($p);
+              $tagList = [];
+              if (!empty($p['tags'])) {
+                $tagList = array_values(array_filter(array_map('trim', explode(',', $p['tags']))));
+              }
+              $subs = project_subcategories($p);
+              $subsData = strtolower(implode(',', $subs));
+              $tagData = strtolower(implode(' ', $tagList));
+              $category = project_category_label($p);
+              $short = project_short_desc($p);
+              $href = !empty($p['url'])
+                ? $p['url']
+                : appUrl('projects.php') . '#project-' . (int) $p['id'];
+              $external = !empty($p['url']);
+              $slug = 'project-' . (int) $p['id'];
+              $isCommerce = strcasecmp(trim((string) ($p['title'] ?? '')), 'Tanui Commerce') === 0;
+              $commerceSlides = $isCommerce ? project_commerce_slides() : [];
+              $hasCarousel = count($commerceSlides) > 1;
+            ?>
+              <article
+                id="<?php echo htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'); ?>"
+                class="proj-gallery__card reveal-on-enter<?php echo $hasCarousel ? ' proj-gallery__card--carousel' : ''; ?>"
+                data-category="<?php echo htmlspecialchars(strtolower($category), ENT_QUOTES, 'UTF-8'); ?>"
+                data-subcats="<?php echo htmlspecialchars($subsData, ENT_QUOTES, 'UTF-8'); ?>"
+                data-tags="<?php echo htmlspecialchars($tagData . ' ' . strtolower($category), ENT_QUOTES, 'UTF-8'); ?>"
+                data-project-id="<?php echo (int) $p['id']; ?>"
+              >
+                <?php if ($hasCarousel): ?>
+                  <div class="proj-carousel" data-proj-carousel>
+                    <div class="proj-carousel__viewport">
+                      <div class="proj-carousel__track">
+                        <?php foreach ($commerceSlides as $i => $slide): ?>
+                          <a
+                            class="proj-carousel__slide js-project-launch<?php echo $i === 0 ? ' is-active' : ''; ?>"
+                            href="<?php echo htmlspecialchars($slide['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-project-id="<?php echo (int) $p['id']; ?>"
+                            data-label="<?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?>"
+                            aria-label="Open Tanui <?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?> store"
+                          >
+                            <img
+                              src="<?php echo htmlspecialchars($slide['src'], ENT_QUOTES, 'UTF-8'); ?>"
+                              alt="Tanui <?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?> storefront"
+                              loading="<?php echo $i === 0 ? 'eager' : 'lazy'; ?>"
+                              decoding="async"
+                              width="960"
+                              height="660"
+                            >
+                          </a>
+                        <?php endforeach; ?>
+                      </div>
+                    </div>
+                    <button type="button" class="proj-carousel__nav proj-carousel__nav--prev" aria-label="Previous store">
+                      <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="proj-carousel__nav proj-carousel__nav--next" aria-label="Next store">
+                      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    </button>
+                    <div class="proj-carousel__chrome">
+                      <span class="proj-carousel__badge" data-carousel-label><?php echo htmlspecialchars($commerceSlides[0]['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                      <div class="proj-carousel__dots" role="tablist" aria-label="Tanui Commerce stores">
+                        <?php foreach ($commerceSlides as $i => $slide): ?>
+                          <button
+                            type="button"
+                            class="proj-carousel__dot<?php echo $i === 0 ? ' is-active' : ''; ?>"
+                            data-index="<?php echo (int) $i; ?>"
+                            aria-label="Show <?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?>"
+                            aria-selected="<?php echo $i === 0 ? 'true' : 'false'; ?>"
+                          ></button>
+                        <?php endforeach; ?>
+                      </div>
+                    </div>
+                  </div>
+                  <a
+                    class="proj-gallery__meta-link js-project-launch"
+                    href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>"
+                    <?php if ($external): ?>target="_blank" rel="noopener noreferrer"<?php endif; ?>
+                    data-project-id="<?php echo (int) $p['id']; ?>"
+                  >
+                    <div class="proj-gallery__meta">
+                      <div class="proj-gallery__copy">
+                        <h2 class="proj-gallery__title"><?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?></h2>
+                        <p class="proj-gallery__desc"><?php echo htmlspecialchars($short, ENT_QUOTES, 'UTF-8'); ?></p>
+                      </div>
+                      <span class="proj-gallery__tag"><?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                  </a>
+                <?php else: ?>
+                  <a
+                    class="proj-gallery__link js-project-launch"
+                    href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>"
+                    <?php if ($external): ?>target="_blank" rel="noopener noreferrer"<?php endif; ?>
+                    data-project-id="<?php echo (int) $p['id']; ?>"
+                    title="<?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                  >
+                    <div class="proj-gallery__media<?php echo $pImg ? '' : ' proj-gallery__media--empty'; ?>">
+                      <?php if ($pImg): ?>
+                        <img
+                          class="proj-gallery__img"
+                          src="<?php echo htmlspecialchars($pImg, ENT_QUOTES, 'UTF-8'); ?>?v=<?php echo @filemtime(__DIR__ . '/../assets/images/projects/' . basename((string) ($p['image'] ?? 'x'))); ?>"
+                          alt="<?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?> screenshot"
+                          loading="lazy"
+                          decoding="async"
+                          width="960"
+                          height="660"
+                        >
+                      <?php else: ?>
+                        <?php echo media_placeholder($p['title'] ?? '', 'media-ph--project'); ?>
+                      <?php endif; ?>
+                    </div>
+
+                    <div class="proj-gallery__meta">
+                      <div class="proj-gallery__copy">
+                        <h2 class="proj-gallery__title"><?php echo htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8'); ?></h2>
+                        <p class="proj-gallery__desc"><?php echo htmlspecialchars($short, ENT_QUOTES, 'UTF-8'); ?></p>
+                      </div>
+                      <span class="proj-gallery__tag"><?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                  </a>
+                <?php endif; ?>
+              </article>
+            <?php endforeach; ?>
+          </div>
+
+          <p class="proj-filter-empty" id="proj-filter-empty" hidden>
+            No projects match those filters.
+            <button type="button" class="proj-filter-reset" id="proj-filter-reset">Show all</button>
+          </p>
+        </div>
+      </div>
 
     <?php endif; ?>
 
@@ -279,34 +380,158 @@ function project_resolve_image(array $p): string {
         io.unobserve(entry.target);
       });
     }, { threshold: 0.45 });
-    document.querySelectorAll('.proj-case[data-project-id]').forEach(function (el) {
+    document.querySelectorAll('.proj-gallery__card[data-project-id]').forEach(function (el) {
       io.observe(el);
     });
   }
 
-  var filters = document.querySelectorAll('.proj-filter, .proj-filter-reset');
-  var cases = document.querySelectorAll('.proj-case');
-  var emptyMsg = document.getElementById('proj-filter-empty');
-  if (!filters.length || !cases.length) return;
+  var catButtons = document.querySelectorAll('.proj-sidepanel__cat');
+  var subChecks = document.querySelectorAll('.proj-sidepanel__check');
+  var cards = document.querySelectorAll('.proj-gallery__card');
+  var titleEl = document.getElementById('proj-results-title');
+  var emptyEl = document.getElementById('proj-filter-empty');
+  var clearBtn = document.getElementById('proj-clear-filters');
+  var resetBtn = document.getElementById('proj-filter-reset');
+  if (!catButtons.length || !cards.length) return;
 
-  function applyFilter(value) {
-    var visible = 0;
-    cases.forEach(function (el) {
-      var tags = (el.getAttribute('data-tags') || '');
-      var show = value === 'all' || tags.indexOf(value) !== -1;
-      el.classList.toggle('is-filtered-out', !show);
-      if (show) visible++;
-    });
-    document.querySelectorAll('.proj-filter').forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.getAttribute('data-filter') === value);
-    });
-    if (emptyMsg) emptyMsg.hidden = visible > 0;
+  var activeCategory = 'all';
+
+  function selectedSubs() {
+    return Array.prototype.filter.call(subChecks, function (c) { return c.checked; })
+      .map(function (c) { return (c.value || '').toLowerCase(); });
   }
 
-  filters.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      applyFilter(btn.getAttribute('data-filter') || 'all');
+  function titleFor(category, count) {
+    if (category === 'websites') return 'Websites (' + count + ')';
+    if (category === 'apps') return 'Apps (' + count + ')';
+    return 'All projects (' + count + ')';
+  }
+
+  function applyFilters() {
+    var subs = selectedSubs();
+    var visible = 0;
+
+    cards.forEach(function (card) {
+      var cat = (card.getAttribute('data-category') || '').toLowerCase();
+      var cardSubs = (card.getAttribute('data-subcats') || '').toLowerCase().split(',').filter(Boolean);
+      var catOk = activeCategory === 'all' || cat === activeCategory;
+      var subOk = !subs.length || subs.some(function (s) { return cardSubs.indexOf(s) !== -1; });
+      var show = catOk && subOk;
+      card.classList.toggle('is-filtered-out', !show);
+      if (show) visible++;
     });
+
+    if (titleEl) titleEl.textContent = titleFor(activeCategory, visible);
+    if (emptyEl) emptyEl.hidden = visible > 0;
+    if (clearBtn) clearBtn.hidden = !(activeCategory !== 'all' || subs.length);
+  }
+
+  function setCategory(value) {
+    activeCategory = value || 'all';
+    catButtons.forEach(function (btn) {
+      var on = (btn.getAttribute('data-category') || '') === activeCategory;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    applyFilters();
+  }
+
+  function clearFilters() {
+    subChecks.forEach(function (c) { c.checked = false; });
+    setCategory('all');
+  }
+
+  catButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setCategory(btn.getAttribute('data-category') || 'all');
+    });
+  });
+
+  subChecks.forEach(function (c) {
+    c.addEventListener('change', applyFilters);
+  });
+
+  if (clearBtn) clearBtn.addEventListener('click', clearFilters);
+  if (resetBtn) resetBtn.addEventListener('click', clearFilters);
+
+  applyFilters();
+
+  document.querySelectorAll('[data-proj-carousel]').forEach(function (carousel) {
+    var track = carousel.querySelector('.proj-carousel__track');
+    var slides = carousel.querySelectorAll('.proj-carousel__slide');
+    var dots = carousel.querySelectorAll('.proj-carousel__dot');
+    var label = carousel.querySelector('[data-carousel-label]');
+    var prev = carousel.querySelector('.proj-carousel__nav--prev');
+    var next = carousel.querySelector('.proj-carousel__nav--next');
+    if (!track || slides.length < 2) return;
+
+    var index = 0;
+    var timer = null;
+
+    function goTo(nextIndex) {
+      index = (nextIndex + slides.length) % slides.length;
+      track.style.transform = 'translateX(' + (-index * 100) + '%)';
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle('is-active', i === index);
+      });
+      dots.forEach(function (dot, i) {
+        var on = i === index;
+        dot.classList.toggle('is-active', on);
+        dot.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      if (label) {
+        label.textContent = slides[index].getAttribute('data-label') || '';
+      }
+    }
+
+    function start() {
+      stop();
+      timer = window.setInterval(function () {
+        goTo(index + 1);
+      }, 4200);
+    }
+
+    function stop() {
+      if (timer) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    if (prev) {
+      prev.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        goTo(index - 1);
+        start();
+      });
+    }
+
+    if (next) {
+      next.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        goTo(index + 1);
+        start();
+      });
+    }
+
+    dots.forEach(function (dot) {
+      dot.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        goTo(parseInt(dot.getAttribute('data-index') || '0', 10));
+        start();
+      });
+    });
+
+    carousel.addEventListener('mouseenter', stop);
+    carousel.addEventListener('mouseleave', start);
+    carousel.addEventListener('focusin', stop);
+    carousel.addEventListener('focusout', start);
+
+    goTo(0);
+    start();
   });
 })();
 </script>

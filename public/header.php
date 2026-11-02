@@ -70,6 +70,28 @@ if ($about === false || trim((string)$about) === '') {
 
 $projects = $pdo->query('SELECT * FROM projects ORDER BY sort_order DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
 
+// Main projects shown in the navbar (matches https://tanuisila.dev/projects.php).
+$navProjectAllowTitles = [
+  'quire',
+  'tanui university',
+  'flyleaf',
+  'cv studio',
+  'tanui commerce',
+  'lyricsync',
+];
+$navProjects = array_values(array_filter($projects, static function (array $project) use ($navProjectAllowTitles): bool {
+  $title = strtolower(trim((string) ($project['title'] ?? '')));
+  return $title !== '' && in_array($title, $navProjectAllowTitles, true);
+}));
+// Preserve live page order when present.
+usort($navProjects, static function (array $a, array $b) use ($navProjectAllowTitles): int {
+  $ai = array_search(strtolower(trim((string) ($a['title'] ?? ''))), $navProjectAllowTitles, true);
+  $bi = array_search(strtolower(trim((string) ($b['title'] ?? ''))), $navProjectAllowTitles, true);
+  $ai = $ai === false ? 999 : $ai;
+  $bi = $bi === false ? 999 : $bi;
+  return $ai <=> $bi;
+});
+
 $skillsRaw = $pdo->query('SELECT name, level FROM skills ORDER BY level DESC')->fetchAll(PDO::FETCH_ASSOC);
 $skills = [];
 $seenSkills = [];
@@ -392,6 +414,218 @@ if (!isset($activePage)) {
     .sh__nav-link:hover::after { transform: scaleX(1); transform-origin: left; }
     .sh__nav-link.active { color: var(--accent) !important; opacity: 1 !important; }
     .sh__nav-link.active::after { transform: scaleX(1); }
+
+    /* Projects dropdown */
+    .sh__drop {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .sh__drop-trigger {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+      white-space: nowrap;
+    }
+    .sh__drop-link {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 4px 6px 11px;
+      font-size: 0.77rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .sh__drop-link i.fa-code { font-size: 0.7rem; opacity: 0.65; }
+    .sh__drop-toggle {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 28px;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .sh__drop-chevron {
+      font-size: 0.58rem;
+      opacity: 0.7;
+      transition: transform 0.2s ease;
+    }
+    .sh__drop-trigger::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 11px;
+      right: 8px;
+      height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sh__drop-trigger:hover .sh__drop-link,
+    .sh__drop-trigger:hover .sh__drop-toggle,
+    .sh__drop.is-open .sh__drop-link,
+    .sh__drop.is-open .sh__drop-toggle,
+    .sh__drop-toggle[aria-expanded="true"] {
+      color: var(--text);
+    }
+    .sh__drop-link:hover { opacity: 1; }
+    .sh__drop-trigger:hover::after,
+    .sh__drop.is-open .sh__drop-trigger::after,
+    .sh__drop-trigger.is-active::after {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+    .sh__drop-trigger.is-active .sh__drop-link,
+    .sh__drop-trigger.is-active .sh__drop-toggle {
+      color: var(--accent) !important;
+    }
+    .sh__drop.is-open .sh__drop-chevron,
+    .sh__drop-toggle[aria-expanded="true"] .sh__drop-chevron {
+      transform: rotate(180deg);
+    }
+    .sh__drop-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      min-width: 300px;
+      max-width: min(92vw, 360px);
+      max-height: min(70vh, 480px);
+      overflow-y: auto;
+      padding: 8px 0;
+      background: #fff;
+      border: 1px solid var(--light-gray);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+      z-index: 400;
+    }
+    .sh__drop-menu.is-open {
+      display: block;
+    }
+    .sh__drop-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      text-decoration: none;
+      color: var(--text);
+      transition: background 0.15s ease;
+    }
+    .sh__drop-item:hover {
+      background: rgba(234, 88, 12, 0.06);
+      opacity: 1;
+    }
+    .sh__drop-item__copy {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .sh__drop-item__title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      color: var(--text);
+    }
+    .sh__drop-item__meta {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+    .sh__drop-item__icon {
+      margin-top: 2px;
+      color: var(--accent);
+      font-size: 0.72rem;
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+    .sh__drop-foot {
+      display: block;
+      margin-top: 4px;
+      padding: 11px 16px;
+      border-top: 1px solid var(--light-gray);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .sh__drop-foot:hover {
+      background: rgba(234, 88, 12, 0.05);
+      opacity: 1;
+    }
+    .sh__drawer-sub {
+      display: none;
+      flex-direction: column;
+      padding: 0 0 6px 28px;
+      gap: 2px;
+    }
+    .sh__drawer-sub.is-open { display: flex; }
+    .sh__drawer-sub a {
+      display: block;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .sh__drawer-sub a:hover {
+      color: var(--accent);
+      opacity: 1;
+    }
+    .sh__drawer-projects-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .sh__drawer-projects-row .sh__drawer-link {
+      flex: 1;
+      min-width: 0;
+    }
+    .sh__drawer-projects-btn {
+      width: 44px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      font: inherit;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .sh__drawer-projects-btn .sh__drop-chevron {
+      color: var(--muted);
+    }
+    .sh__drawer-projects-btn.active,
+    .sh__drawer-projects-btn[aria-expanded="true"] {
+      color: var(--accent);
+      background: rgba(234, 88, 12, 0.06);
+    }
+    .sh__drawer-projects-btn[aria-expanded="true"] .sh__drop-chevron {
+      transform: rotate(180deg);
+    }
+
     /* CTA */
     .sh__actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .sh__contact-btn {
@@ -470,6 +704,9 @@ if (!isset($activePage)) {
       .sh__inner { gap: 16px; }
       .sh__nav { gap: 0; }
       .sh__nav-link { padding: 6px 7px; font-size: 0.72rem; gap: 4px; }
+      .sh__drop-link { padding: 6px 2px 6px 7px; font-size: 0.72rem; gap: 4px; }
+      .sh__drop-toggle { width: 22px; height: 26px; }
+      .sh__drop-menu { left: 0; right: auto; min-width: 260px; }
       .sh__contact-btn { padding: 8px 14px; font-size: 0.72rem; }
       .tb__item .tb__label { display: none; }
       .tb__item { padding: 0 14px; }
@@ -508,6 +745,49 @@ if (!isset($activePage)) {
         : '<i class="fa-solid fa-bars"></i>';
     }
 
+    function shPositionProjectsMenu() {
+      const trigger = document.getElementById('sh-projects-trigger');
+      const menu = document.getElementById('sh-projects-menu');
+      if (!trigger || !menu) return;
+      const rect = trigger.getBoundingClientRect();
+      const menuWidth = Math.min(360, Math.max(280, menu.offsetWidth || 300));
+      let left = rect.left;
+      if (left + menuWidth > window.innerWidth - 12) {
+        left = Math.max(12, window.innerWidth - menuWidth - 12);
+      }
+      menu.style.position = 'fixed';
+      menu.style.top = Math.round(rect.bottom + 8) + 'px';
+      menu.style.left = Math.round(left) + 'px';
+      menu.style.right = 'auto';
+      menu.style.minWidth = menuWidth + 'px';
+    }
+
+    function shToggleProjectsMenu(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      const drop = document.getElementById('sh-projects-drop');
+      const menu = document.getElementById('sh-projects-menu');
+      const trigger = document.getElementById('sh-projects-trigger');
+      if (!drop || !menu || !trigger) return;
+      const open = !menu.classList.contains('is-open');
+      drop.classList.toggle('is-open', open);
+      menu.classList.toggle('is-open', open);
+      menu.hidden = !open;
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) shPositionProjectsMenu();
+    }
+
+    function shToggleDrawerProjects() {
+      const btn = document.getElementById('sh-drawer-projects-btn');
+      const sub = document.getElementById('sh-drawer-projects');
+      if (!btn || !sub) return;
+      const open = !sub.classList.contains('is-open');
+      sub.classList.toggle('is-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
     (function initHeaderScroll() {
       const header = document.querySelector('.sh');
       if (!header) return;
@@ -517,6 +797,38 @@ if (!isset($activePage)) {
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
     })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const drop = document.getElementById('sh-projects-drop');
+      const trigger = document.getElementById('sh-projects-trigger');
+      const menu = document.getElementById('sh-projects-menu');
+      if (!drop || !trigger || !menu) return;
+
+      function closeMenu() {
+        drop.classList.remove('is-open');
+        menu.classList.remove('is-open');
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+
+      document.addEventListener('click', function (e) {
+        if (!drop.contains(e.target) && !menu.contains(e.target)) {
+          closeMenu();
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+      });
+
+      window.addEventListener('resize', function () {
+        if (menu.classList.contains('is-open')) shPositionProjectsMenu();
+      }, { passive: true });
+
+      window.addEventListener('scroll', function () {
+        if (menu.classList.contains('is-open')) shPositionProjectsMenu();
+      }, { passive: true });
+    });
   </script>
 </head>
 <body>
@@ -582,7 +894,30 @@ if (!isset($activePage)) {
         <a href="<?php echo appUrl('education.php'); ?>"  class="sh__nav-link <?php echo $activePage === 'education'  ? 'active' : ''; ?>"><i class="fa-solid fa-graduation-cap"></i> Education</a>
         <a href="<?php echo appUrl('experience.php'); ?>" class="sh__nav-link <?php echo $activePage === 'experience' ? 'active' : ''; ?>"><i class="fa-solid fa-briefcase"></i> Experience</a>
         <a href="<?php echo appUrl('skills.php'); ?>"     class="sh__nav-link <?php echo $activePage === 'skills'     ? 'active' : ''; ?>"><i class="fa-solid fa-layer-group"></i> Skills</a>
-        <a href="<?php echo appUrl('projects.php'); ?>"   class="sh__nav-link <?php echo $activePage === 'projects'   ? 'active' : ''; ?>"><i class="fa-solid fa-code"></i> Projects</a>
+        <div class="sh__drop" id="sh-projects-drop">
+          <div class="sh__drop-trigger<?php echo $activePage === 'projects' ? ' is-active' : ''; ?>">
+            <a
+              class="sh__drop-link"
+              href="<?php echo appUrl('projects.php'); ?>"
+              <?php echo $activePage === 'projects' ? 'aria-current="page"' : ''; ?>
+            >
+              <i class="fa-solid fa-code" aria-hidden="true"></i>
+              Projects
+            </a>
+            <button
+              type="button"
+              class="sh__drop-toggle"
+              id="sh-projects-trigger"
+              aria-label="Show projects menu"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="sh-projects-menu"
+              onclick="shToggleProjectsMenu(event)"
+            >
+              <i class="fa-solid fa-chevron-down sh__drop-chevron" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
         <a href="<?php echo appUrl('blog.php'); ?>"       class="sh__nav-link <?php echo $activePage === 'blog'       ? 'active' : ''; ?>"><i class="fa-solid fa-pen-nib"></i> Blog</a>
       </nav>
 
@@ -607,7 +942,44 @@ if (!isset($activePage)) {
       <a href="<?php echo appUrl('education.php'); ?>"  class="sh__drawer-link <?php echo $activePage === 'education'  ? 'active' : ''; ?>"><i class="fa-solid fa-graduation-cap"></i> Education</a>
       <a href="<?php echo appUrl('experience.php'); ?>" class="sh__drawer-link <?php echo $activePage === 'experience' ? 'active' : ''; ?>"><i class="fa-solid fa-briefcase"></i> Experience</a>
       <a href="<?php echo appUrl('skills.php'); ?>"     class="sh__drawer-link <?php echo $activePage === 'skills'     ? 'active' : ''; ?>"><i class="fa-solid fa-layer-group"></i> Skills</a>
-      <a href="<?php echo appUrl('projects.php'); ?>"   class="sh__drawer-link <?php echo $activePage === 'projects'   ? 'active' : ''; ?>"><i class="fa-solid fa-code"></i> Projects</a>
+      <div class="sh__drawer-projects-row">
+        <a
+          href="<?php echo appUrl('projects.php'); ?>"
+          class="sh__drawer-link <?php echo $activePage === 'projects' ? 'active' : ''; ?>"
+        ><i class="fa-solid fa-code"></i> Projects</a>
+        <button
+          type="button"
+          class="sh__drawer-projects-btn <?php echo $activePage === 'projects' ? 'active' : ''; ?>"
+          id="sh-drawer-projects-btn"
+          aria-label="Show project links"
+          aria-expanded="false"
+          aria-controls="sh-drawer-projects"
+          onclick="shToggleDrawerProjects()"
+        >
+          <i class="fa-solid fa-chevron-down sh__drop-chevron" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="sh__drawer-sub" id="sh-drawer-projects">
+        <?php if (!empty($navProjects)): ?>
+          <?php foreach ($navProjects as $navProject):
+            $navTitle = trim((string) ($navProject['title'] ?? ''));
+            if ($navTitle === '') {
+              continue;
+            }
+            $navUrl = trim((string) ($navProject['url'] ?? ''));
+            $navHref = $navUrl !== ''
+              ? $navUrl
+              : appUrl('projects.php') . '#project-' . (int) $navProject['id'];
+            $navExternal = $navUrl !== '';
+          ?>
+            <a
+              href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>"
+              <?php if ($navExternal): ?>target="_blank" rel="noopener noreferrer"<?php endif; ?>
+            ><?php echo htmlspecialchars($navTitle, ENT_QUOTES, 'UTF-8'); ?><?php echo $navExternal ? ' ↗' : ''; ?></a>
+          <?php endforeach; ?>
+        <?php endif; ?>
+        <a href="<?php echo appUrl('projects.php'); ?>">Browse all projects</a>
+      </div>
       <a href="<?php echo appUrl('blog.php'); ?>"       class="sh__drawer-link <?php echo $activePage === 'blog'       ? 'active' : ''; ?>"><i class="fa-solid fa-pen-nib"></i> Blog</a>
       <a href="<?php echo appUrl('contact.php'); ?>"    class="sh__drawer-link <?php echo $activePage === 'contact'    ? 'active' : ''; ?>"><i class="fa-solid fa-paper-plane"></i> Contact</a>
       <div class="sh__drawer-divider"></div>
@@ -629,3 +1001,48 @@ if (!isset($activePage)) {
       </div>
     </div>
   </header>
+
+  <div class="sh__drop-menu" id="sh-projects-menu" role="menu" aria-label="Projects" hidden>
+    <?php if (!empty($navProjects)): ?>
+      <?php foreach ($navProjects as $navProject):
+        $navTitle = trim((string) ($navProject['title'] ?? ''));
+        if ($navTitle === '') {
+          continue;
+        }
+        $navUrl = trim((string) ($navProject['url'] ?? ''));
+        $navHref = $navUrl !== ''
+          ? $navUrl
+          : appUrl('projects.php') . '#project-' . (int) $navProject['id'];
+        $navExternal = $navUrl !== '';
+        $navHost = '';
+        if ($navExternal) {
+          $navHost = preg_replace('#^https?://#i', '', rtrim($navUrl, '/'));
+          $navHost = preg_replace('#/.*$#', '', $navHost);
+        }
+      ?>
+        <a
+          class="sh__drop-item"
+          role="menuitem"
+          href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>"
+          <?php if ($navExternal): ?>target="_blank" rel="noopener noreferrer"<?php endif; ?>
+        >
+          <span class="sh__drop-item__copy">
+            <span class="sh__drop-item__title"><?php echo htmlspecialchars($navTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php if ($navHost !== ''): ?>
+              <span class="sh__drop-item__meta"><?php echo htmlspecialchars($navHost, ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php endif; ?>
+          </span>
+          <?php if ($navExternal): ?>
+            <i class="fa-solid fa-arrow-up-right-from-square sh__drop-item__icon" aria-hidden="true"></i>
+          <?php endif; ?>
+        </a>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <span class="sh__drop-item" role="menuitem" aria-disabled="true">
+        <span class="sh__drop-item__copy">
+          <span class="sh__drop-item__title">No projects yet</span>
+        </span>
+      </span>
+    <?php endif; ?>
+    <a class="sh__drop-foot" role="menuitem" href="<?php echo appUrl('projects.php'); ?>">Browse all projects →</a>
+  </div>
