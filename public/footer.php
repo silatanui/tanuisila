@@ -61,49 +61,7 @@
     </div>
   </footer>
 
-  <div class="cookie-banner" id="cookieBanner" style="position:fixed; left:0; right:0; bottom:0; background:rgba(15,23,42,0.96); color:#fff; z-index:200; border-top:1px solid rgba(255,255,255,0.08); display: none;">
-    <div class="container" style="display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:48px; padding-top:8px; padding-bottom:8px;">
-      <div class="cookie-text" style="font-size:0.78rem; color:rgba(255,255,255,0.7);">Cookies help this site run. <a href="<?php echo appUrl('privacy.php'); ?>" style="color:#fff; text-decoration:underline;">Privacy</a></div>
-      <div class="actions" style="display:flex; gap:8px;">
-        <button class="accept" onclick="acceptCookies()" style="border:none; background:#ffffff; color:#0f172a; cursor:pointer; font-weight:700; font-size:0.72rem; letter-spacing:0.06em; text-transform:uppercase; padding:7px 14px;">Accept</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    // Self-healing cookie validation handler
-    document.addEventListener("DOMContentLoaded", function() {
-        if (!getCookie("sila_cookies_accepted")) {
-            document.getElementById("cookieBanner").style.display = "block";
-        }
-    });
-
-    function acceptCookies() {
-        setCookie("sila_cookies_accepted", "true", 365);
-        document.getElementById("cookieBanner").style.display = "none";
-    }
-
-    function setCookie(name, value, days) {
-        let expires = "";
-        if (days) {
-            let date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/";
-    }
-
-    function getCookie(name) {
-        let nameEQ = name + "=";
-        let ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
-
     // Automatic Skeleton Shimmer Image Loader + missing-image placeholders
     function buildMediaPlaceholder(label) {
       const ph = document.createElement('span');

@@ -27,17 +27,149 @@ $eduPreview = array_slice(is_array($education ?? null) ? $education : [], 0, 2);
 $expPreview = array_slice(is_array($experience ?? null) ? $experience : [], 0, 2);
 $skillPreview = array_slice(is_array($skills ?? null) ? $skills : [], 0, 8);
 
+// Homepage Gantt tracker - LinkedIn journey (+ Transcosmos on site).
+// Dates use first of start month / last day of end month.
+$expTrack = [
+  [
+    'label' => 'Kerugoya CRH',
+    'role' => 'IT Specialist',
+    'company' => 'Kerugoya County Referral Hospital',
+    'start' => '2022-07-01',
+    'end' => '2022-08-31',
+    'tone' => 'slate',
+    'lane' => 0,
+  ],
+  [
+    'label' => 'Litmed',
+    'role' => 'IT Technician & Lecturer',
+    'company' => 'Litmed College of Technology',
+    'start' => '2022-09-09',
+    'end' => '2023-03-31',
+    'tone' => 'blue',
+    'lane' => 0,
+  ],
+  [
+    'label' => 'Infolink',
+    'role' => 'ICT & Programming Tutor',
+    'company' => 'Infolink College of Technology',
+    'start' => '2023-04-10',
+    'end' => '2024-09-01',
+    'tone' => 'orange',
+    'lane' => 0,
+  ],
+  [
+    'label' => 'GAOTek',
+    'role' => 'Graphic Designer',
+    'company' => 'GAOTek Inc.',
+    'start' => '2023-10-01',
+    'end' => '2024-02-29',
+    'tone' => 'rose',
+    'lane' => 1,
+  ],
+  [
+    'label' => 'Transcosmos',
+    'role' => 'Customer Success Specialist',
+    'company' => 'Transcosmos (Fossil Group)',
+    'start' => '2025-10-01',
+    'end' => '2026-02-01',
+    'tone' => 'teal',
+    'lane' => 0,
+  ],
+];
+
+// Full calendar years so year columns and bar math share the same scale.
+$expTrackYears = range(2022, 2026);
+$expTrackStart = strtotime('2022-01-01');
+$expTrackEnd = strtotime('2027-01-01');
+$expTrackSpan = max(1, $expTrackEnd - $expTrackStart);
+$expTrackNow = time();
+$expTrackToday = min(100, max(0, ($expTrackNow - $expTrackStart) / $expTrackSpan * 100));
+
+foreach ($expTrack as $i => $row) {
+  $s = strtotime($row['start']);
+  $e = strtotime($row['end']);
+  if ($s === false || $e === false || $e < $s) {
+    $expTrack[$i]['left'] = 0;
+    $expTrack[$i]['width'] = 0;
+    $expTrack[$i]['when'] = '';
+    continue;
+  }
+  $left = (($s - $expTrackStart) / $expTrackSpan) * 100;
+  $width = (($e - $s) / $expTrackSpan) * 100;
+  $expTrack[$i]['left'] = round(max(0, min(100, $left)), 2);
+  $expTrack[$i]['width'] = round(max(1.2, min(100 - $expTrack[$i]['left'], $width)), 2);
+  $expTrack[$i]['when'] = date('M Y', $s) . ' - ' . date('M Y', $e);
+}
+
+// Chronological education path for the homepage visual (primary → graduate).
+$eduPath = [
+  [
+    'stage' => '01',
+    'label' => 'Primary',
+    'title' => 'St Vincent De Paul',
+    'place' => 'Karnanin',
+    'when' => '2004 - 2013',
+    'result' => 'KCPE · 387 marks',
+    'icon' => 'fa-school',
+  ],
+  [
+    'stage' => '02',
+    'label' => 'Secondary',
+    'title' => 'Chewoyet High School',
+    'place' => 'West Pokot',
+    'when' => '2014 - 2017',
+    'result' => 'KCSE · B plain · 63 points',
+    'icon' => 'fa-book-open',
+  ],
+];
+
+if (!empty($education) && is_array($education)) {
+  $eduChrono = array_reverse($education);
+  $stage = 3;
+  foreach ($eduChrono as $item) {
+    $degree = trim((string) ($item['degree'] ?? 'Degree'));
+    $institution = trim((string) ($item['institution'] ?? ''));
+    $field = trim((string) ($item['field_name'] ?? ''));
+    $when = hp_edu_years($item);
+    $result = $field !== '' ? $field : 'Computer Science';
+    $icon = (stripos($degree, 'MSc') !== false || stripos($degree, 'Master') !== false)
+      ? 'fa-graduation-cap'
+      : 'fa-user-graduate';
+    $eduPath[] = [
+      'stage' => str_pad((string) $stage, 2, '0', STR_PAD_LEFT),
+      'label' => (stripos($degree, 'MSc') !== false || stripos($degree, 'Master') !== false) ? 'Graduate' : 'Undergraduate',
+      'title' => $degree,
+      'place' => $institution,
+      'when' => $when,
+      'result' => $result,
+      'icon' => $icon,
+    ];
+    $stage++;
+  }
+}
+
 $latestPosts = [];
 try {
     $latestPosts = $pdo->query("
-        SELECT title, slug, excerpt, published_at
+        SELECT title, slug, excerpt, featured_image, category, published_at
         FROM blog_posts
         WHERE status = 'published'
         ORDER BY published_at DESC, id DESC
-        LIMIT 2
+        LIMIT 3
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $latestPosts = [];
+}
+
+function hp_post_image(array $post): string {
+    if (empty($post['featured_image'])) {
+        return '';
+    }
+    return portfolioAssetUrl((string) $post['featured_image']);
+}
+
+function hp_post_href(array $post): string {
+    return appUrl('post.php?slug=' . urlencode((string) ($post['slug'] ?? '')));
 }
 
 $heroSummary = trim((string) (
@@ -72,14 +204,37 @@ function hp_short(string $text, int $max = 140): string {
 }
 
 function hp_edu_years(array $item): string {
-    return trim(($item['start_year'] ?? '') . ' - ' . ($item['end_year'] ?? ''), ' -');
+    $pickYear = static function ($value): string {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        if (preg_match('/\b(19|20)\d{2}\b/', $raw, $m)) {
+            return $m[0];
+        }
+        return $raw;
+    };
+    $start = $pickYear($item['start_year'] ?? '');
+    $end = $pickYear($item['end_year'] ?? '');
+    return trim($start . ' - ' . $end, ' -');
 }
 
 function hp_exp_when(array $item): string {
-    $start = trim((string) ($item['start_date'] ?? ''));
-    $end = trim((string) ($item['end_date'] ?? ''));
-    $current = $end === '' || strcasecmp($end, 'present') === 0;
-    return trim($start . ' - ' . ($current ? 'Present' : $end), ' -');
+    $pickYear = static function ($value): string {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        if (preg_match('/\b(19|20)\d{2}\b/', $raw, $m)) {
+            return $m[0];
+        }
+        return $raw;
+    };
+    $start = $pickYear($item['start_date'] ?? '');
+    $endRaw = trim((string) ($item['end_date'] ?? ''));
+    $current = $endRaw === '' || strcasecmp($endRaw, 'present') === 0;
+    $end = $current ? 'Present' : $pickYear($endRaw);
+    return trim($start . ' - ' . $end, ' -');
 }
 ?>
 
@@ -205,24 +360,36 @@ function hp_exp_when(array $item): string {
     </div>
   </section>
 
-  <!-- Path preview: Education + Experience -->
-  <?php if ($eduPreview || $expPreview): ?>
-  <section class="hp-path">
-    <div class="container hp-path__inner">
-      <div class="hp-path__col">
+  <!-- Education path + Experience -->
+  <section class="hp-paths">
+    <div class="container hp-paths__inner">
+      <div class="hp-edu-path">
         <div class="hp-section-label">
-          <span class="hp-section-label__text">Education</span>
+          <span class="hp-section-label__text">Education path</span>
         </div>
-        <h2 class="hp-path__title">Academic path</h2>
-        <ul class="hp-path__list">
-          <?php foreach ($eduPreview as $item): ?>
-            <li>
-              <p class="hp-path__when"><?php echo htmlspecialchars(hp_edu_years($item), ENT_QUOTES, 'UTF-8'); ?></p>
-              <h3><?php echo htmlspecialchars((string) ($item['degree'] ?? 'Degree'), ENT_QUOTES, 'UTF-8'); ?></h3>
-              <p><?php echo htmlspecialchars((string) ($item['institution'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
-            </li>
-          <?php endforeach; ?>
-        </ul>
+        <h2 class="hp-path__title">Academic route</h2>
+        <p class="hp-edu-path__lede">Primary to graduate - a clear through-line from foundations to research.</p>
+
+        <div class="hp-edu-board">
+          <ol class="hp-edu-track" aria-label="Education path">
+            <?php foreach ($eduPath as $i => $step): ?>
+              <li class="hp-edu-step hp-edu-step--n<?php echo (int) ($i + 1); ?>" style="--edu-i: <?php echo (int) $i; ?>">
+                <div class="hp-edu-step__badge" aria-hidden="true">
+                  <span class="hp-edu-step__num"><?php echo htmlspecialchars($step['stage'], ENT_QUOTES, 'UTF-8'); ?></span>
+                  <i class="fa-solid <?php echo htmlspecialchars($step['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
+                </div>
+                <div class="hp-edu-step__copy">
+                  <p class="hp-edu-step__stage"><?php echo htmlspecialchars($step['label'], ENT_QUOTES, 'UTF-8'); ?></p>
+                  <h3 class="hp-edu-step__title"><?php echo htmlspecialchars($step['title'], ENT_QUOTES, 'UTF-8'); ?></h3>
+                  <p class="hp-edu-step__place"><?php echo htmlspecialchars($step['place'], ENT_QUOTES, 'UTF-8'); ?></p>
+                  <p class="hp-edu-step__when"><?php echo htmlspecialchars($step['when'], ENT_QUOTES, 'UTF-8'); ?></p>
+                  <p class="hp-edu-step__result"><?php echo htmlspecialchars($step['result'], ENT_QUOTES, 'UTF-8'); ?></p>
+                </div>
+              </li>
+            <?php endforeach; ?>
+          </ol>
+        </div>
+
         <a class="hp-text-link" href="<?php echo appUrl('public/education.php'); ?>">Full education timeline <span>→</span></a>
       </div>
 
@@ -231,20 +398,66 @@ function hp_exp_when(array $item): string {
           <span class="hp-section-label__text">Experience</span>
         </div>
         <h2 class="hp-path__title">Professional path</h2>
-        <ul class="hp-path__list">
-          <?php foreach ($expPreview as $item): ?>
-            <li>
-              <p class="hp-path__when"><?php echo htmlspecialchars(hp_exp_when($item), ENT_QUOTES, 'UTF-8'); ?></p>
-              <h3><?php echo htmlspecialchars((string) ($item['role_name'] ?? 'Role'), ENT_QUOTES, 'UTF-8'); ?></h3>
-              <p><?php echo htmlspecialchars((string) ($item['company'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
-            </li>
-          <?php endforeach; ?>
-        </ul>
+        <p class="hp-edu-path__lede">A tracker of roles over time - including concurrent work when paths overlapped.</p>
+
+        <div class="hp-gantt" aria-label="Professional experience tracker">
+          <div class="hp-gantt__years" aria-hidden="true">
+            <?php foreach ($expTrackYears as $year): ?>
+              <span><?php echo (int) $year; ?></span>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="hp-gantt__chart">
+            <div class="hp-gantt__grid" aria-hidden="true">
+              <?php foreach ($expTrackYears as $year): ?>
+                <span></span>
+              <?php endforeach; ?>
+            </div>
+            <div class="hp-gantt__today" style="left: <?php echo htmlspecialchars((string) round($expTrackToday, 2), ENT_QUOTES, 'UTF-8'); ?>%;" aria-hidden="true">
+              <span>Now</span>
+            </div>
+
+            <ol class="hp-gantt__lanes">
+              <?php foreach ($expTrack as $i => $row):
+                $barClass = 'hp-gantt__bar hp-gantt__bar--' . $row['tone'];
+                $labelOutside = $row['width'] < 14;
+                if ($labelOutside) {
+                  $barClass .= ' hp-gantt__bar--outside';
+                }
+                $arrowLeft = round($row['left'] + ($row['width'] / 2), 2);
+              ?>
+                <li class="hp-gantt__lane hp-gantt__lane--lane<?php echo (int) $row['lane']; ?>">
+                  <div
+                    class="<?php echo htmlspecialchars($barClass, ENT_QUOTES, 'UTF-8'); ?>"
+                    style="left: <?php echo htmlspecialchars((string) $row['left'], ENT_QUOTES, 'UTF-8'); ?>%; width: <?php echo htmlspecialchars((string) $row['width'], ENT_QUOTES, 'UTF-8'); ?>%;"
+                    title="<?php echo htmlspecialchars($row['role'] . ' · ' . $row['company'] . ' · ' . $row['when'], ENT_QUOTES, 'UTF-8'); ?>"
+                  >
+                    <span class="hp-gantt__bar-fill" aria-hidden="true"></span>
+                    <?php if (!$labelOutside): ?>
+                      <span class="hp-gantt__bar-text"><?php echo htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <?php if ($labelOutside): ?>
+                    <span
+                      class="hp-gantt__name"
+                      style="left: <?php echo htmlspecialchars((string) round($row['left'] + $row['width'] + 0.8, 2), ENT_QUOTES, 'UTF-8'); ?>%;"
+                    ><?php echo htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                  <?php endif; ?>
+                </li>
+                <?php if ($i < count($expTrack) - 1): ?>
+                  <li class="hp-gantt__arrow" aria-hidden="true">
+                    <span style="left: <?php echo htmlspecialchars((string) $arrowLeft, ENT_QUOTES, 'UTF-8'); ?>%;">↓</span>
+                  </li>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </ol>
+          </div>
+        </div>
+
         <a class="hp-text-link" href="<?php echo appUrl('public/experience.php'); ?>">Full experience timeline <span>→</span></a>
       </div>
     </div>
   </section>
-  <?php endif; ?>
 
   <!-- Projects -->
   <?php if ($workProjects): ?>
@@ -365,33 +578,71 @@ function hp_exp_when(array $item): string {
   </section>
   <?php endif; ?>
 
-  <!-- Blog + About -->
+  <!-- Blog previews -->
+  <?php if ($latestPosts): ?>
+  <section class="hp-blog">
+    <div class="container">
+      <div class="hp-blog__header">
+        <div>
+          <div class="hp-section-label">
+            <span class="hp-section-label__text">From the blog</span>
+          </div>
+          <h2 class="hp-section-title">Recent writing</h2>
+          <p class="hp-section-lede">Notes on reverse engineering, tooling, and how this portfolio is run.</p>
+        </div>
+        <a class="hp-cta hp-cta--primary" href="<?php echo appUrl('blog.php'); ?>">
+          All posts <span class="hp-cta-arrow">→</span>
+        </a>
+      </div>
+
+      <div class="hp-blog__grid">
+        <?php foreach ($latestPosts as $i => $post):
+          $postImg = hp_post_image($post);
+          $postHref = hp_post_href($post);
+          $postDate = !empty($post['published_at']) ? date('M j, Y', strtotime((string) $post['published_at'])) : '';
+          $postCat = trim((string) ($post['category'] ?? ''));
+        ?>
+          <a class="hp-blog__card" href="<?php echo htmlspecialchars($postHref, ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="hp-blog__media<?php echo $postImg ? ' img-skeleton-wrap' : ' hp-blog__media--empty'; ?>">
+              <?php if ($postImg): ?>
+                <img
+                  src="<?php echo htmlspecialchars($postImg, ENT_QUOTES, 'UTF-8'); ?>"
+                  alt=""
+                  loading="<?php echo $i === 0 ? 'eager' : 'lazy'; ?>"
+                  decoding="async"
+                  onload="this.closest('.img-skeleton-wrap') && this.closest('.img-skeleton-wrap').classList.add('loaded')"
+                >
+              <?php else: ?>
+                <?php echo media_placeholder($post['title'] ?? 'Post', 'media-ph--card'); ?>
+              <?php endif; ?>
+            </div>
+            <div class="hp-blog__body">
+              <div class="hp-blog__meta">
+                <?php if ($postCat !== ''): ?>
+                  <span class="hp-blog__cat"><?php echo htmlspecialchars($postCat, ENT_QUOTES, 'UTF-8'); ?></span>
+                <?php endif; ?>
+                <?php if ($postDate !== ''): ?>
+                  <time datetime="<?php echo htmlspecialchars(date('c', strtotime((string) $post['published_at'])), ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php echo htmlspecialchars($postDate, ENT_QUOTES, 'UTF-8'); ?>
+                  </time>
+                <?php endif; ?>
+              </div>
+              <strong class="hp-blog__title"><?php echo htmlspecialchars((string) $post['title'], ENT_QUOTES, 'UTF-8'); ?></strong>
+              <?php if (!empty($post['excerpt'])): ?>
+                <span class="hp-blog__excerpt"><?php echo htmlspecialchars(hp_short((string) $post['excerpt'], 140), ENT_QUOTES, 'UTF-8'); ?></span>
+              <?php endif; ?>
+              <em class="hp-blog__go">Read post →</em>
+            </div>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <!-- About -->
   <section class="hp-signal">
     <div class="container hp-signal__inner">
-      <?php if ($latestPosts): ?>
-      <div class="hp-signal__col">
-        <div class="hp-section-label">
-          <span class="hp-section-label__text">From the blog</span>
-        </div>
-        <h2 class="hp-path__title">Recent writing</h2>
-        <ul class="hp-blog-list">
-          <?php foreach ($latestPosts as $post): ?>
-            <li>
-              <a href="<?php echo appUrl('post.php?slug=' . urlencode((string) $post['slug'])); ?>">
-                <strong><?php echo htmlspecialchars((string) $post['title'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                <?php if (!empty($post['excerpt'])): ?>
-                  <span><?php echo htmlspecialchars(hp_short((string) $post['excerpt'], 120), ENT_QUOTES, 'UTF-8'); ?></span>
-                <?php elseif (!empty($post['published_at'])): ?>
-                  <span><?php echo htmlspecialchars(date('M j, Y', strtotime((string) $post['published_at'])), ENT_QUOTES, 'UTF-8'); ?></span>
-                <?php endif; ?>
-              </a>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-        <a class="hp-text-link" href="<?php echo appUrl('blog.php'); ?>">All posts <span>→</span></a>
-      </div>
-      <?php endif; ?>
-
       <div class="hp-signal__col">
         <div class="hp-section-label">
           <span class="hp-section-label__text">About</span>
@@ -589,7 +840,7 @@ function hp_exp_when(array $item): string {
   max-width: 34rem;
   color: var(--muted);
   font-size: clamp(1rem, 1.4vw, 1.08rem);
-  line-height: 1.55;
+  line-height: 1em;
   opacity: 0;
   animation: hp-slide-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.32s forwards;
 }
@@ -814,11 +1065,27 @@ function hp_exp_when(array $item): string {
   color: var(--text);
 }
 
+#main-content p,
+#main-content li,
+.hp-hero__sub,
+.hp-section-lede,
+.hp-map__item > span:not(.hp-map__kicker):not(.hp-map__go),
+.hp-work__meta span,
+.hp-featured__desc,
+.hp-blog__excerpt,
+.hp-about-snippet,
+.hp-cta-strip__sub,
+.hp-edu-step__place,
+.hp-edu-step__when,
+.hp-edu-step__result {
+  line-height: 1em;
+}
+
 .hp-section-lede {
   margin: 0;
   max-width: 46ch;
   font-size: 1.02rem;
-  line-height: 1.55;
+  line-height: 1em;
   color: var(--muted);
 }
 
@@ -902,7 +1169,7 @@ function hp_exp_when(array $item): string {
 
 .hp-map__item > span:not(.hp-map__kicker):not(.hp-map__go) {
   font-size: 0.92rem;
-  line-height: 1.45;
+  line-height: 1em;
   color: var(--muted);
   flex: 1;
 }
@@ -925,17 +1192,261 @@ function hp_exp_when(array $item): string {
   transform: translateX(3px);
 }
 
-/* Path preview */
-.hp-path {
+/* Education + experience row */
+.hp-paths {
   padding: clamp(48px, 7vw, 88px) 0;
   border-bottom: 1px solid var(--light-gray);
-  background: #f8fafc;
+  background:
+    radial-gradient(ellipse 40% 60% at 8% 12%, rgba(234, 88, 12, 0.07), transparent 58%),
+    radial-gradient(ellipse 30% 45% at 92% 88%, rgba(15, 23, 42, 0.04), transparent 55%),
+    #f8fafc;
 }
 
-.hp-path__inner {
+.hp-paths__inner {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: clamp(28px, 5vw, 56px);
+  gap: clamp(32px, 5vw, 56px);
+  align-items: stretch;
+}
+
+.hp-edu-path,
+.hp-path__col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hp-edu-path .hp-section-label {
+  margin-bottom: 14px;
+}
+
+.hp-edu-path .hp-section-label::after {
+  display: none;
+}
+
+.hp-edu-path .hp-path__title {
+  margin: 0 0 10px;
+  line-height: 1.15;
+}
+
+.hp-edu-path__lede {
+  margin: 0 0 28px;
+  max-width: 38ch;
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1em;
+}
+
+.hp-edu-board {
+  position: relative;
+  background:
+    linear-gradient(165deg, #ffffff 0%, #fffaf5 48%, #fff7ed 100%);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 28px 20px 22px;
+  margin-bottom: 18px;
+  overflow: visible;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 18px 44px rgba(15, 23, 42, 0.06);
+  flex: 1;
+}
+
+.hp-edu-path > .hp-text-link {
+  margin-top: auto;
+}
+
+.hp-edu-board::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 42%, #000 15%, transparent 78%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hp-edu-track {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 36px 28px;
+  position: relative;
+  z-index: 1;
+  align-items: start;
+}
+
+.hp-edu-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 6px;
+  transition: transform 0.25s ease;
+}
+
+.hp-edu-step:hover {
+  transform: translateY(-3px);
+}
+
+.hp-edu-step__badge {
+  position: relative;
+  z-index: 1;
+}
+
+.hp-edu-step__copy {
+  position: relative;
+  z-index: 1;
+}
+
+.hp-edu-step--n1 { grid-column: 1; grid-row: 1; }
+.hp-edu-step--n2 { grid-column: 2; grid-row: 1; }
+.hp-edu-step--n3 { grid-column: 2; grid-row: 2; }
+.hp-edu-step--n4 { grid-column: 1; grid-row: 2; }
+
+.hp-edu-step--n1::after,
+.hp-edu-step--n2::after,
+.hp-edu-step--n3::after {
+  content: '→';
+  position: absolute;
+  z-index: 2;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent);
+  pointer-events: none;
+  -webkit-text-stroke: 0.6px var(--accent);
+  paint-order: stroke fill;
+}
+
+.hp-edu-step--n1,
+.hp-edu-step--n2,
+.hp-edu-step--n3 {
+  position: relative;
+}
+
+.hp-edu-step--n1::after {
+  top: 28px;
+  right: -16px;
+  transform: translateX(50%);
+}
+
+.hp-edu-step--n2::after {
+  content: '↓';
+  top: auto;
+  bottom: -26px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+.hp-edu-step--n3::after {
+  content: '←';
+  top: 28px;
+  left: -16px;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+.hp-edu-step--n3 {
+  padding-top: 6px;
+}
+
+.hp-edu-step__badge {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 25%, #fff7ed, #fff 58%),
+    #fff;
+  border: 2px solid rgba(234, 88, 12, 0.42);
+  color: var(--accent);
+  font-size: 1.1rem;
+  box-shadow:
+    0 0 0 4px rgba(234, 88, 12, 0.07),
+    0 10px 22px rgba(15, 23, 42, 0.1);
+  transition: border-color 0.25s ease;
+}
+
+.hp-edu-step:hover .hp-edu-step__badge {
+  border-color: var(--accent);
+}
+
+.hp-edu-step__num {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: var(--text);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 2px solid #fff;
+}
+
+.hp-edu-step__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.hp-edu-step__stage {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  line-height: 1em;
+}
+
+.hp-edu-step__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.hp-edu-step__place,
+.hp-edu-step__when,
+.hp-edu-step__result {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1em;
+}
+
+.hp-edu-step__result {
+  margin-top: 4px;
+  padding: 5px 8px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(234, 88, 12, 0.06);
+  border: 1px solid rgba(234, 88, 12, 0.14);
+}
+
+.hp-path__col {
+  padding: 4px 0 0;
+}
+
+.hp-path__col > .hp-text-link {
+  margin-top: auto;
 }
 
 .hp-path__title {
@@ -946,46 +1457,195 @@ function hp_exp_when(array $item): string {
   color: var(--text);
 }
 
-.hp-path__list {
-  list-style: none;
-  margin: 0 0 22px;
-  padding: 0;
+.hp-path__col .hp-path__title {
+  margin-bottom: 10px;
+}
+
+.hp-path__col .hp-edu-path__lede {
+  margin-bottom: 18px;
+}
+
+/* Gantt-style experience tracker */
+.hp-gantt {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 16px 14px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.04);
+  overflow: visible;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.hp-gantt__years {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--light-gray);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.hp-gantt__chart {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 4px 2px 0;
+}
+
+.hp-gantt__grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hp-gantt__grid span {
+  border-left: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.hp-gantt__grid span:nth-child(odd) {
+  background: rgba(15, 23, 42, 0.015);
+}
+
+.hp-gantt__today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid #2563eb;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hp-gantt__today span {
+  position: absolute;
+  top: -2px;
+  left: 4px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2563eb;
+  background: #fff;
+  padding: 0 3px;
+}
+
+.hp-gantt__lanes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 380px;
   gap: 0;
 }
 
-.hp-path__list li {
-  padding: 16px 0;
-  border-top: 1px solid var(--light-gray);
+.hp-gantt__lane {
+  position: relative;
+  height: 48px;
+  flex: 0 0 auto;
 }
 
-.hp-path__list li:last-child {
-  border-bottom: 1px solid var(--light-gray);
+.hp-gantt__arrow {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 28px;
+  list-style: none;
+  pointer-events: none;
 }
 
-.hp-path__when {
-  margin: 0 0 6px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.hp-gantt__arrow span {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
   color: var(--accent);
+  -webkit-text-stroke: 0.6px var(--accent);
+  paint-order: stroke fill;
 }
 
-.hp-path__list h3 {
-  margin: 0 0 4px;
-  font-size: 1.05rem;
+.hp-gantt__bar {
+  position: absolute;
+  top: 4px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  min-width: 16px;
+  z-index: 2;
+}
+
+.hp-gantt__bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 58%;
+  opacity: 0.22;
+  background: #0f172a;
+  pointer-events: none;
+}
+
+.hp-gantt__bar-text {
+  position: relative;
+  z-index: 1;
+  padding: 0 12px;
+  font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  letter-spacing: 0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.35);
 }
 
-.hp-path__list p {
-  margin: 0;
-  font-size: 0.92rem;
-  color: var(--muted);
+.hp-gantt__name {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  margin-left: 2px;
+  padding: 2px 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1;
+  pointer-events: none;
 }
+
+.hp-gantt__years span {
+  text-align: left;
+  padding-left: 2px;
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.hp-gantt__bar--slate { background: linear-gradient(90deg, #334155, #64748b); }
+.hp-gantt__bar--blue { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+.hp-gantt__bar--orange { background: linear-gradient(90deg, #c2410c, #ea580c); }
+.hp-gantt__bar--rose { background: linear-gradient(90deg, #be123c, #fb7185); }
+.hp-gantt__bar--teal { background: linear-gradient(90deg, #0f766e, #14b8a6); }
 
 /* Work rail */
 .hp-work {
@@ -1063,7 +1723,7 @@ function hp_exp_when(array $item): string {
 
 .hp-work__meta span {
   font-size: 0.88rem;
-  line-height: 1.4;
+  line-height: 1em;
   color: var(--muted);
 }
 
@@ -1103,7 +1763,7 @@ function hp_exp_when(array $item): string {
   margin: 0 0 22px;
   max-width: 38ch;
   font-size: 1.02rem;
-  line-height: 1.6;
+  line-height: 1em;
   color: var(--muted);
 }
 
@@ -1177,6 +1837,120 @@ function hp_exp_when(array $item): string {
 }
 
 /* Blog + about */
+.hp-blog {
+  padding: clamp(48px, 7vw, 88px) 0;
+  border-bottom: 1px solid var(--light-gray);
+  background:
+    radial-gradient(ellipse 45% 55% at 100% 0%, rgba(234, 88, 12, 0.05), transparent 60%),
+    #fff;
+}
+
+.hp-blog__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.hp-blog__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.hp-blog__card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--light-gray);
+  transition: border-color 0.2s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hp-blog__card:hover {
+  border-color: rgba(234, 88, 12, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+  opacity: 1;
+}
+
+.hp-blog__media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.hp-blog__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hp-blog__card:hover .hp-blog__media img {
+  transform: scale(1.04);
+}
+
+.hp-blog__media--empty {
+  display: grid;
+  place-items: center;
+}
+
+.hp-blog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+  flex: 1;
+}
+
+.hp-blog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.hp-blog__cat {
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hp-blog__title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.hp-blog__excerpt {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1em;
+  flex: 1;
+}
+
+.hp-blog__go {
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 .hp-signal {
   padding: clamp(48px, 7vw, 88px) 0;
   border-bottom: 1px solid var(--light-gray);
@@ -1184,59 +1958,15 @@ function hp_exp_when(array $item): string {
 
 .hp-signal__inner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: clamp(28px, 5vw, 56px);
-}
-
-.hp-blog-list {
-  list-style: none;
-  margin: 0 0 22px;
-  padding: 0;
-}
-
-.hp-blog-list li {
-  border-top: 1px solid var(--light-gray);
-}
-
-.hp-blog-list li:last-child {
-  border-bottom: 1px solid var(--light-gray);
-}
-
-.hp-blog-list a {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 0;
-  text-decoration: none;
-  color: inherit;
-  transition: color 0.2s ease;
-}
-
-.hp-blog-list a:hover {
-  opacity: 1;
-}
-
-.hp-blog-list a:hover strong {
-  color: var(--accent);
-}
-
-.hp-blog-list strong {
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.hp-blog-list span {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  color: var(--muted);
+  max-width: 44rem;
 }
 
 .hp-about-snippet {
   margin: 0 0 20px;
   font-size: 1.02rem;
-  line-height: 1.55;
+  line-height: 1em;
   color: var(--muted);
   max-width: 42ch;
 }
@@ -1303,7 +2033,7 @@ function hp_exp_when(array $item): string {
   margin: 0;
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.65);
-  line-height: 1.55;
+  line-height: 1em;
   max-width: 42ch;
 }
 
@@ -1340,6 +2070,7 @@ function hp_exp_when(array $item): string {
 @media (max-width: 1100px) {
   .hp-map__grid { grid-template-columns: 1fr 1fr; }
   .hp-work__rail { grid-template-columns: 1fr 1fr; }
+  .hp-blog__grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 900px) {
@@ -1362,7 +2093,30 @@ function hp_exp_when(array $item): string {
 
   .hp-photo-accent { display: none; }
 
-  .hp-path__inner,
+  .hp-paths__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .hp-edu-track {
+    grid-template-columns: 1fr 1fr;
+    gap: 34px 24px;
+  }
+
+  .hp-edu-step--n1 { grid-column: 1; grid-row: 1; }
+  .hp-edu-step--n2 { grid-column: 2; grid-row: 1; }
+  .hp-edu-step--n3 { grid-column: 2; grid-row: 2; }
+  .hp-edu-step--n4 { grid-column: 1; grid-row: 2; }
+
+  .hp-edu-step--n1::after,
+  .hp-edu-step--n2::after,
+  .hp-edu-step--n3::after {
+    font-size: 1.15rem;
+  }
+
+  .hp-edu-step--n3 {
+    padding-top: 4px;
+  }
+
   .hp-skills__inner,
   .hp-signal__inner,
   .hp-featured__inner {
@@ -1385,13 +2139,15 @@ function hp_exp_when(array $item): string {
 
 @media (max-width: 640px) {
   .hp-map__grid,
-  .hp-work__rail {
+  .hp-work__rail,
+  .hp-blog__grid {
     grid-template-columns: 1fr;
   }
 
   .hp-cta { width: 100%; justify-content: center; }
 
-  .hp-work__header .hp-cta { width: auto; }
+  .hp-work__header .hp-cta,
+  .hp-blog__header .hp-cta { width: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

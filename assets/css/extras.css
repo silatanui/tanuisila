@@ -3116,7 +3116,7 @@
 }
 
 @media print {
-  .tb, .sh, .cookie-banner, .back-to-top, .reading-progress, .cmdk-overlay, .hp-scroll-indicator,
+  .tb, .sh, .back-to-top, .reading-progress, .cmdk-overlay, .hp-scroll-indicator,
   .bp-sidebar, .bp-form, .bp-discussion, .bp-footer-bar, .bl-hub-browse, .bl-hub__bg,
   .ab-hero__bg, .ab-hero__actions, .ab-close__actions {
     display: none !important;
