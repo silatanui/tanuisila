@@ -846,3 +846,449 @@ function analyticsTopProjects(PDO $pdo, int $limit = 12): array
         return [];
     }
 }
+
+/** @return list<string> */
+function analyticsKnownPageKeys(): array
+{
+    return [
+        'home', 'about', 'education', 'experience', 'skills', 'projects',
+        'blog', 'research', 'contact', 'publications', 'lab', 'saas', 'now',
+        'tools', 'uses', 'reading', 'guestbook', 'faq', 'talks', 'friends',
+        'oss', 'resources', 'changelog', 'colophon', 'sitemap',
+    ];
+}
+
+function analyticsNormalizePageKey(string $pageKey): string
+{
+    $key = strtolower(trim($pageKey));
+    $key = preg_replace('/[^a-z0-9_\-]/', '', $key) ?? '';
+    $aliases = [
+        'employment' => 'experience',
+        'work' => 'experience',
+        'index' => 'home',
+        'post' => 'blog',
+        'open-source' => 'oss',
+        'opensource' => 'oss',
+        'reverse-engineering' => 'research',
+        '404' => 'other',
+    ];
+    if (isset($aliases[$key])) {
+        $key = $aliases[$key];
+    }
+    if ($key === '' || !in_array($key, analyticsKnownPageKeys(), true)) {
+        return 'other';
+    }
+    return $key;
+}
+
+function analyticsPageKeyLabel(string $pageKey): string
+{
+    $labels = [
+        'home' => 'Home',
+        'about' => 'About',
+        'education' => 'Education',
+        'experience' => 'Experience',
+        'skills' => 'Skills',
+        'projects' => 'Projects',
+        'blog' => 'Blog',
+        'research' => 'Research',
+        'contact' => 'Contact',
+        'publications' => 'Publications',
+        'lab' => 'Lab',
+        'saas' => 'SaaS',
+        'now' => 'Now',
+        'tools' => 'Tools',
+        'uses' => 'Uses',
+        'reading' => 'Reading',
+        'guestbook' => 'Guestbook',
+        'faq' => 'FAQ',
+        'talks' => 'Talks',
+        'friends' => 'Friends',
+        'oss' => 'Open source',
+        'resources' => 'Resources',
+        'changelog' => 'Changelog',
+        'colophon' => 'Colophon',
+        'sitemap' => 'Sitemap',
+        'other' => 'Other',
+    ];
+    $key = analyticsNormalizePageKey($pageKey);
+    return $labels[$key] ?? ucfirst($key);
+}
+
+function analyticsEnsurePageViewsTable(PDO $pdo): void
+{
+    static $ready = false;
+    if ($ready) {
+        return;
+    }
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS site_page_views (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            visit_date DATE NOT NULL,
+            page_key VARCHAR(64) NOT NULL,
+            visitor_hash CHAR(64) NOT NULL,
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent VARCHAR(255) DEFAULT NULL,
+            path VARCHAR(255) DEFAULT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_page_visitor_day (visit_date, page_key, visitor_hash),
+            KEY idx_page_date (page_key, visit_date),
+            KEY idx_visit_date (visit_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $ready = true;
+}
+
+/**
+ * One count per visitor + page section per calendar day.
+ */
+function trackSitePageView(PDO $pdo, string $pageKey): void
+{
+    if (PHP_SAPI === 'cli') {
+        return;
+    }
+
+    $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+    if (strpos($script, '/admin/') !== false) {
+        return;
+    }
+
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    if (analyticsIsBot($userAgent)) {
+        return;
+    }
+
+    $ip = analyticsClientIp();
+    if ($ip === '') {
+        return;
+    }
+
+    $pageKey = analyticsNormalizePageKey($pageKey);
+    $visitorHash = analyticsVisitorHash($ip, $userAgent);
+    $visitDate = date('Y-m-d');
+    $cookieName = 'sila_pg_' . $pageKey . '_' . date('Ymd') . '_' . substr($visitorHash, 0, 10);
+    if (!empty($_COOKIE[$cookieName])) {
+        return;
+    }
+
+    $path = substr((string) ($_SERVER['REQUEST_URI'] ?? '/'), 0, 255);
+
+    try {
+        analyticsEnsurePageViewsTable($pdo);
+        $pdo->prepare("
+            INSERT IGNORE INTO site_page_views
+                (visit_date, page_key, visitor_hash, ip_address, user_agent, path, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ")->execute([
+            $visitDate,
+            $pageKey,
+            $visitorHash,
+            substr($ip, 0, 45),
+            substr($userAgent, 0, 255),
+            $path,
+        ]);
+
+        if (!headers_sent()) {
+            setcookie($cookieName, '1', [
+                'expires' => strtotime('tomorrow') - 1,
+                'path' => '/',
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        }
+        $_COOKIE[$cookieName] = '1';
+    } catch (Throwable $e) {
+        // Ignore quietly on older deploys / locked DBs
+    }
+}
+
+/**
+ * Unique people per page section over the window.
+ * @return array{labels: string[], values: int[], keys: string[]}
+ */
+function analyticsTopPages(PDO $pdo, int $days = 30, int $limit = 12): array
+{
+    $days = max(7, min(90, $days));
+    $limit = max(1, min(30, $limit));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    $labels = [];
+    $values = [];
+    $keys = [];
+    try {
+        analyticsEnsurePageViewsTable($pdo);
+        $stmt = $pdo->prepare("
+            SELECT page_key, COUNT(DISTINCT visitor_hash) AS c
+            FROM site_page_views
+            WHERE visit_date >= ?
+            GROUP BY page_key
+            ORDER BY c DESC, page_key ASC
+            LIMIT {$limit}
+        ");
+        $stmt->execute([$since]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $key = (string) $row['page_key'];
+            $keys[] = $key;
+            $labels[] = analyticsPageKeyLabel($key);
+            $values[] = (int) $row['c'];
+        }
+    } catch (Throwable $e) {
+        return ['labels' => [], 'values' => [], 'keys' => []];
+    }
+    return ['labels' => $labels, 'values' => $values, 'keys' => $keys];
+}
+
+/**
+ * Daily distinct page-section views (person+page counted once per day, summed).
+ * @return array{labels: string[], values: int[]}
+ */
+function analyticsDailyPageViewsSeries(PDO $pdo, int $days = 30): array
+{
+    $days = max(7, min(90, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    $map = [];
+    try {
+        analyticsEnsurePageViewsTable($pdo);
+        $stmt = $pdo->prepare("
+            SELECT visit_date AS d, COUNT(*) AS c
+            FROM site_page_views
+            WHERE visit_date >= ?
+            GROUP BY visit_date
+            ORDER BY visit_date ASC
+        ");
+        $stmt->execute([$since]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $map[(string) $row['d']] = (int) $row['c'];
+        }
+    } catch (Throwable $e) {
+        $map = [];
+    }
+
+    $labels = [];
+    $values = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $d = date('Y-m-d', strtotime("-{$i} days"));
+        $labels[] = $i === 0 ? (date('M j', strtotime($d)) . ' · today') : date('M j', strtotime($d));
+        $values[] = $map[$d] ?? 0;
+    }
+    return ['labels' => $labels, 'values' => $values];
+}
+
+function analyticsNormalizeLandingLabel(string $path): string
+{
+    $path = strtolower(trim(parse_url($path, PHP_URL_PATH) ?: $path));
+    $path = preg_replace('#/+#', '/', $path) ?? $path;
+    $base = basename($path);
+    $base = preg_replace('/\.(php|html?)$/', '', $base) ?? $base;
+    if ($base === '' || $base === '/' || $base === 'index') {
+        return 'Home';
+    }
+    $map = [
+        'about' => 'About',
+        'education' => 'Education',
+        'experience' => 'Experience',
+        'skills' => 'Skills',
+        'projects' => 'Projects',
+        'blog' => 'Blog',
+        'post' => 'Blog post',
+        'research' => 'Research',
+        'contact' => 'Contact',
+        'publications' => 'Publications',
+        'lab' => 'Lab',
+        'saas' => 'SaaS',
+        'now' => 'Now',
+        'tools' => 'Tools',
+        'uses' => 'Uses',
+        'reading' => 'Reading',
+        'guestbook' => 'Guestbook',
+        'faq' => 'FAQ',
+        'talks' => 'Talks',
+        'friends' => 'Friends',
+        'open-source' => 'Open source',
+        'resources' => 'Resources',
+        'changelog' => 'Changelog',
+        'colophon' => 'Colophon',
+        'sitemap' => 'Sitemap',
+        'reverse-engineering' => 'Research',
+    ];
+    if (isset($map[$base])) {
+        return $map[$base];
+    }
+    return ucwords(str_replace(['-', '_'], ' ', $base));
+}
+
+/**
+ * First-hit landing paths from unique daily visitors.
+ * @return array{labels: string[], values: int[]}
+ */
+function analyticsLandingBreakdown(PDO $pdo, int $days = 30, int $limit = 8): array
+{
+    $days = max(7, min(90, $days));
+    $limit = max(1, min(20, $limit));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    $bucket = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT landing_path, COUNT(*) AS c
+            FROM site_daily_visitors
+            WHERE visit_date >= ? AND landing_path IS NOT NULL AND landing_path != ''
+            GROUP BY landing_path
+            ORDER BY c DESC
+        ");
+        $stmt->execute([$since]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $label = analyticsNormalizeLandingLabel((string) $row['landing_path']);
+            $bucket[$label] = ($bucket[$label] ?? 0) + (int) $row['c'];
+        }
+    } catch (Throwable $e) {
+        return ['labels' => [], 'values' => []];
+    }
+
+    arsort($bucket);
+    $labels = [];
+    $values = [];
+    $i = 0;
+    foreach ($bucket as $label => $count) {
+        if ($i >= $limit) {
+            break;
+        }
+        $labels[] = $label;
+        $values[] = (int) $count;
+        $i++;
+    }
+    return ['labels' => $labels, 'values' => $values];
+}
+
+/**
+ * Browser family mix from daily unique visitors.
+ * @return array{labels: string[], values: int[]}
+ */
+function analyticsBrowserBreakdown(PDO $pdo, int $days = 30): array
+{
+    $days = max(7, min(90, $days));
+    $since = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    $bucket = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT user_agent
+            FROM site_daily_visitors
+            WHERE visit_date >= ?
+        ");
+        $stmt->execute([$since]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $family = analyticsBrowserFamily($row['user_agent'] ?? '');
+            $label = match ($family) {
+                'chrome' => 'Chrome',
+                'edge' => 'Edge',
+                'firefox' => 'Firefox',
+                'safari' => 'Safari',
+                'opera' => 'Opera',
+                'ie' => 'IE',
+                default => 'Other',
+            };
+            $bucket[$label] = ($bucket[$label] ?? 0) + 1;
+        }
+    } catch (Throwable $e) {
+        return ['labels' => [], 'values' => []];
+    }
+
+    arsort($bucket);
+    return [
+        'labels' => array_keys($bucket),
+        'values' => array_map('intval', array_values($bucket)),
+    ];
+}
+
+/**
+ * Launch rate for top projects by views.
+ * @return array{labels: string[], rates: float[], views: int[], clicks: int[]}
+ */
+function analyticsProjectConversion(PDO $pdo, int $limit = 10): array
+{
+    $limit = max(1, min(30, $limit));
+    $labels = [];
+    $rates = [];
+    $views = [];
+    $clicks = [];
+    try {
+        $stmt = $pdo->query("
+            SELECT title, views, clicks
+            FROM projects
+            WHERE views > 0
+            ORDER BY views DESC, clicks DESC, id DESC
+            LIMIT {$limit}
+        ");
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $title = trim((string) ($row['title'] ?? 'Untitled')) ?: 'Untitled';
+            if (function_exists('mb_strlen') && mb_strlen($title) > 36) {
+                $title = mb_substr($title, 0, 33) . '…';
+            } elseif (strlen($title) > 36) {
+                $title = substr($title, 0, 33) . '…';
+            }
+            $v = (int) ($row['views'] ?? 0);
+            $c = (int) ($row['clicks'] ?? 0);
+            $labels[] = $title;
+            $views[] = $v;
+            $clicks[] = $c;
+            $rates[] = $v > 0 ? round(($c / $v) * 100, 1) : 0.0;
+        }
+    } catch (Throwable $e) {
+        return ['labels' => [], 'rates' => [], 'views' => [], 'clicks' => []];
+    }
+    return ['labels' => $labels, 'rates' => $rates, 'views' => $views, 'clicks' => $clicks];
+}
+
+/** Top page label for a single day (or empty string). */
+function analyticsTopPageOn(PDO $pdo, string $date): string
+{
+    try {
+        analyticsEnsurePageViewsTable($pdo);
+        $stmt = $pdo->prepare("
+            SELECT page_key, COUNT(DISTINCT visitor_hash) AS c
+            FROM site_page_views
+            WHERE visit_date = ?
+            GROUP BY page_key
+            ORDER BY c DESC, page_key ASC
+            LIMIT 1
+        ");
+        $stmt->execute([$date]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return '';
+        }
+        return analyticsPageKeyLabel((string) $row['page_key']);
+    } catch (Throwable $e) {
+        return '';
+    }
+}
+
+function analyticsDistinctLandingsSince(PDO $pdo, string $sinceDate): int
+{
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(DISTINCT landing_path)
+            FROM site_daily_visitors
+            WHERE visit_date >= ? AND landing_path IS NOT NULL AND landing_path != ''
+        ");
+        $stmt->execute([$sinceDate]);
+        return (int) $stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+function analyticsAverageProjectConversion(PDO $pdo): float
+{
+    try {
+        $row = $pdo->query("
+            SELECT COALESCE(SUM(views), 0) AS v, COALESCE(SUM(clicks), 0) AS c
+            FROM projects
+            WHERE views > 0
+        ")->fetch(PDO::FETCH_ASSOC);
+        $v = (int) ($row['v'] ?? 0);
+        $c = (int) ($row['c'] ?? 0);
+        return $v > 0 ? round(($c / $v) * 100, 1) : 0.0;
+    } catch (Throwable $e) {
+        return 0.0;
+    }
+}

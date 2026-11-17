@@ -159,6 +159,8 @@ function appUrl(string $path = ''): string {
 if (!isset($activePage)) {
   $activePage = 'home';
 }
+
+trackSitePageView($pdo, (string) $activePage);
 ?>
 <!doctype html>
 <html lang="en">

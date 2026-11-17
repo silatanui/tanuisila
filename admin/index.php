@@ -64,6 +64,14 @@ $countryBreakdown = analyticsCountryBreakdown($pdo, 30);
 $cityLocations = analyticsCityLocations($pdo, 30);
 $projectInterestSeries = analyticsDailyProjectInterestSeries($pdo, 30);
 $topProjects = analyticsTopProjects($pdo, 12);
+$topPages = analyticsTopPages($pdo, 30, 12);
+$pageTrafficSeries = analyticsDailyPageViewsSeries($pdo, 30);
+$landingBreakdown = analyticsLandingBreakdown($pdo, 30, 8);
+$browserBreakdown = analyticsBrowserBreakdown($pdo, 30);
+$projectConversion = analyticsProjectConversion($pdo, 10);
+$topPageToday = analyticsTopPageOn($pdo, $today);
+$landings7 = analyticsDistinctLandingsSince($pdo, $weekAgo);
+$avgProjectConversion = analyticsAverageProjectConversion($pdo);
 
 $topPosts = [];
 try {
@@ -134,6 +142,11 @@ $chartPayload = [
         'views' => $projectBarViews,
         'clicks' => $projectBarClicks,
     ],
+    'topPages' => $topPages,
+    'pageTraffic' => $pageTrafficSeries,
+    'landings' => $landingBreakdown,
+    'browsers' => $browserBreakdown,
+    'projectConversion' => $projectConversion,
 ];
 ?>
 <!doctype html>
@@ -147,7 +160,7 @@ $chartPayload = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="../assets/css/admin.css?v=20">
+  <link rel="stylesheet" href="../assets/css/admin.css?v=21">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" defer></script>
@@ -207,6 +220,21 @@ $chartPayload = [
           <span class="dash-kpi__label">Pending comments</span>
           <strong class="dash-kpi__value"><?php echo number_format($counts['comments_pending']); ?></strong>
           <span class="dash-kpi__meta"><?php echo (int) $counts['comments_total']; ?> total</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Top page today</span>
+          <strong class="dash-kpi__value" style="font-size:clamp(1.1rem,2.4vw,1.45rem);"><?php echo $topPageToday !== '' ? htmlspecialchars($topPageToday) : '—'; ?></strong>
+          <span class="dash-kpi__meta">By unique section readers</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Landing paths · 7d</span>
+          <strong class="dash-kpi__value"><?php echo number_format($landings7); ?></strong>
+          <span class="dash-kpi__meta">Distinct first-hit pages</span>
+        </article>
+        <article class="dash-kpi">
+          <span class="dash-kpi__label">Avg project launch rate</span>
+          <strong class="dash-kpi__value"><?php echo number_format($avgProjectConversion, 1); ?>%</strong>
+          <span class="dash-kpi__meta">Launches ÷ card views</span>
         </article>
       </section>
 
@@ -334,6 +362,72 @@ $chartPayload = [
           </div>
           <div class="dash-chart-wrap dash-chart-wrap--bars">
             <canvas id="chart-top-projects" aria-label="Top projects horizontal bar chart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel dash-chart-card dash-chart-card--wide">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Top pages · 30 days</h2>
+              <p class="dash-chart-card__hint">Unique people per section (education, experience, projects, etc.). One count per person per page per day.</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap dash-chart-wrap--bars">
+            <canvas id="chart-top-pages" aria-label="Top pages horizontal bar chart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel dash-chart-card dash-chart-card--wide">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Page traffic / day</h2>
+              <p class="dash-chart-card__hint">Section reads per day (sum of unique person×page rows).</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap">
+            <canvas id="chart-page-traffic" height="120" aria-label="Page traffic line chart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel dash-chart-card">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">First landing pages</h2>
+              <p class="dash-chart-card__hint">Where unique daily visitors first arrived (historical landing_path).</p>
+            </div>
+          </div>
+          <div class="dash-pie">
+            <div class="dash-chart-wrap dash-chart-wrap--donut">
+              <canvas id="chart-landings" aria-label="Landing pages doughnut chart"></canvas>
+            </div>
+            <ul class="dash-pie-legend" id="legend-landings"></ul>
+          </div>
+        </div>
+
+        <div class="panel dash-chart-card">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Browsers · 30 days</h2>
+              <p class="dash-chart-card__hint">Browser family mix from unique daily visitors.</p>
+            </div>
+          </div>
+          <div class="dash-pie">
+            <div class="dash-chart-wrap dash-chart-wrap--donut">
+              <canvas id="chart-browsers" aria-label="Browsers doughnut chart"></canvas>
+            </div>
+            <ul class="dash-pie-legend" id="legend-browsers"></ul>
+          </div>
+        </div>
+
+        <div class="panel dash-chart-card dash-chart-card--wide">
+          <div class="admin-list-head">
+            <div>
+              <h2 style="margin:0;">Project conversion</h2>
+              <p class="dash-chart-card__hint">Live launches as a percent of card views (intent vs curiosity).</p>
+            </div>
+          </div>
+          <div class="dash-chart-wrap dash-chart-wrap--bars">
+            <canvas id="chart-project-conversion" aria-label="Project conversion horizontal bar chart"></canvas>
           </div>
         </div>
       </section>
@@ -1025,6 +1119,182 @@ $chartPayload = [
           },
           scales: {
             x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function showChartEmpty(canvasId, message) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas || !canvas.parentElement) return;
+      canvas.parentElement.innerHTML = '<p class="muted-copy" style="padding:24px 0;">' + message + '</p>';
+    }
+
+    if (!data.topPages || !data.topPages.labels || !data.topPages.labels.length) {
+      showChartEmpty('chart-top-pages', 'No section reads yet. This fills in as visitors open education, experience, projects, and other pages.');
+    }
+    var topPagesCtx = document.getElementById('chart-top-pages');
+    if (topPagesCtx && data.topPages && data.topPages.labels && data.topPages.labels.length) {
+      var pageBarCount = data.topPages.labels.length;
+      topPagesCtx.parentElement.style.height = Math.max(240, 48 + pageBarCount * 36) + 'px';
+      new Chart(topPagesCtx, {
+        type: 'bar',
+        data: {
+          labels: data.topPages.labels,
+          datasets: [{
+            label: 'Unique readers',
+            data: data.topPages.values,
+            backgroundColor: brand,
+            borderWidth: 0,
+            borderRadius: 0
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    var pageTrafficCtx = document.getElementById('chart-page-traffic');
+    if (pageTrafficCtx && data.pageTraffic) {
+      new Chart(pageTrafficCtx, {
+        type: 'line',
+        data: {
+          labels: data.pageTraffic.labels,
+          datasets: [{
+            label: 'Section reads',
+            data: data.pageTraffic.values,
+            borderColor: brand,
+            backgroundColor: 'rgba(234, 88, 12, 0.12)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+            y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } }
+          }
+        }
+      });
+    }
+
+    var landingColors = ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c', '#64748b', '#9a3412', '#94a3b8'];
+    if (!data.landings || !data.landings.labels || !data.landings.labels.length) {
+      showChartEmpty('chart-landings', 'No landing data yet. It appears once unique visitors arrive on the site.');
+    }
+    var landingsCtx = document.getElementById('chart-landings');
+    if (landingsCtx && data.landings && data.landings.labels && data.landings.labels.length) {
+      fillHtmlLegend('legend-landings', data.landings.labels, data.landings.values, landingColors, 'entries');
+      new Chart(landingsCtx, {
+        type: 'doughnut',
+        data: {
+          labels: data.landings.labels,
+          datasets: [{
+            data: data.landings.values,
+            backgroundColor: landingColors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          cutout: '62%'
+        }
+      });
+    }
+
+    var browserColors = ['#ea580c', '#0f172a', '#c2410c', '#334155', '#fb923c', '#64748b'];
+    if (!data.browsers || !data.browsers.labels || !data.browsers.labels.length) {
+      showChartEmpty('chart-browsers', 'No browser data yet. It appears once unique visitors arrive on the site.');
+    }
+    var browsersCtx = document.getElementById('chart-browsers');
+    if (browsersCtx && data.browsers && data.browsers.labels && data.browsers.labels.length) {
+      fillHtmlLegend('legend-browsers', data.browsers.labels, data.browsers.values, browserColors, 'visitors');
+      new Chart(browsersCtx, {
+        type: 'doughnut',
+        data: {
+          labels: data.browsers.labels,
+          datasets: [{
+            data: data.browsers.values,
+            backgroundColor: browserColors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          cutout: '62%'
+        }
+      });
+    }
+
+    if (!data.projectConversion || !data.projectConversion.labels || !data.projectConversion.labels.length) {
+      showChartEmpty('chart-project-conversion', 'No project launch data yet. Rates appear once project cards have views.');
+    }
+    var conversionCtx = document.getElementById('chart-project-conversion');
+    if (conversionCtx && data.projectConversion && data.projectConversion.labels && data.projectConversion.labels.length) {
+      var convCount = data.projectConversion.labels.length;
+      conversionCtx.parentElement.style.height = Math.max(240, 48 + convCount * 36) + 'px';
+      new Chart(conversionCtx, {
+        type: 'bar',
+        data: {
+          labels: data.projectConversion.labels,
+          datasets: [{
+            label: 'Launch rate %',
+            data: data.projectConversion.rates,
+            backgroundColor: slate,
+            borderWidth: 0,
+            borderRadius: 0
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var i = ctx.dataIndex;
+                  var rate = (data.projectConversion.rates[i] || 0);
+                  var v = (data.projectConversion.views[i] || 0);
+                  var c = (data.projectConversion.clicks[i] || 0);
+                  return ' ' + rate + '% · ' + c + ' launches / ' + v + ' views';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                callback: function (v) { return v + '%'; }
+              },
+              grid: { color: grid }
+            },
             y: { grid: { display: false }, ticks: { font: { size: 11 } } }
           }
         }
