@@ -822,9 +822,9 @@ function analyticsDailyProjectInterestSeries(PDO $pdo, int $days = 30): array
 /**
  * @return list<array{id:int,title:string,url:?string,views:int,clicks:int}>
  */
-function analyticsTopProjects(PDO $pdo, int $limit = 8): array
+function analyticsTopProjects(PDO $pdo, int $limit = 12): array
 {
-    $limit = max(1, min(20, $limit));
+    $limit = max(1, min(30, $limit));
     try {
         $stmt = $pdo->query("
             SELECT id, title, url, views, clicks

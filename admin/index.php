@@ -63,7 +63,7 @@ $blogReaderSeries = analyticsDailyBlogReadersSeries($pdo, 30);
 $countryBreakdown = analyticsCountryBreakdown($pdo, 30);
 $cityLocations = analyticsCityLocations($pdo, 30);
 $projectInterestSeries = analyticsDailyProjectInterestSeries($pdo, 30);
-$topProjects = analyticsTopProjects($pdo, 8);
+$topProjects = analyticsTopProjects($pdo, 12);
 
 $topPosts = [];
 try {
