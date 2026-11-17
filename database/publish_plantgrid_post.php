@@ -10,7 +10,7 @@ require __DIR__ . '/../config/config.php';
 
 $slug = 'plantgrid-operations-desk';
 $title = 'PlantGrid.';
-$excerpt = 'An ICT operations desk for a fictional plant — cases, assets, maps, messages, and an assistant that answers from the same live demo register.';
+$excerpt = 'A portfolio demo of an ICT operations console for plant work: cases, assets, maps, messages, and the modules around them.';
 $articlePath = __DIR__ . '/posts/plantgrid-operations-desk-article.html';
 $content = is_file($articlePath) ? file_get_contents($articlePath) : false;
 if ($content === false || trim($content) === '') {
@@ -41,7 +41,7 @@ if ($id) {
         $featured,
         'Projects',
         'PlantGrid,ICT,operations,manufacturing,cases,portfolio',
-        14,
+        18,
         'PlantGrid — ICT operations desk for a fictional plant',
         $excerpt,
         $id,
@@ -60,7 +60,7 @@ if ($id) {
         'Projects',
         'PlantGrid,ICT,operations,manufacturing,cases,portfolio',
         "Tanui Kipng'etich Sila",
-        14,
+        18,
         $now,
         'PlantGrid — ICT operations desk for a fictional plant',
         $excerpt,
